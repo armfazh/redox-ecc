@@ -1,0 +1,14 @@
+[package]
+name = "redox-ecc"
+version = "0.1.0"
+authors = ["Armando Faz Hernandez <armfazh@coudflare.com>"]
+edition = "2018"
+description = "elliptic curve arithmetic"
+keywords = ["elliptic curve", "math"]
+
+[[bench]]
+name = "uno"
+harness = false
+
+[dependencies]
+bencher = "0.1.5"
