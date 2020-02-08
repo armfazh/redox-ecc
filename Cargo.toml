@@ -1,7 +1,7 @@
 [package]
 name = "redox-ecc"
 version = "0.1.0"
-authors = ["Armando Faz Hernandez <armfazh@coudflare.com>"]
+authors = ["Armando Faz Hernandez"]
 edition = "2018"
 description = "elliptic curve arithmetic"
 keywords = ["elliptic curve", "math"]
@@ -12,3 +12,5 @@ harness = false
 
 [dependencies]
 bencher = "0.1.5"
+num-bigint = "0.2"
+num-traits = "0.2.11"
