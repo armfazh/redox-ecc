@@ -1,12 +1,13 @@
-use crate::field::{PrimeField, PrimeFieldElement};
+use crate::field::PrimeFieldElement;
+use std::ops::Add;
 
-pub struct WeierstassCurve<'a> {
-    pub f: &'a PrimeField,
-    pub a: PrimeFieldElement<'a>,
-    pub b: PrimeFieldElement<'a>,
+pub struct WeierstassCurve {
+    // pub f: &'a PrimeField,
+    pub a: PrimeFieldElement,
+    pub b: PrimeFieldElement,
 }
 
-impl std::fmt::Display for WeierstassCurve<'_> {
+impl std::fmt::Display for WeierstassCurve {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
@@ -16,25 +17,26 @@ impl std::fmt::Display for WeierstassCurve<'_> {
     }
 }
 
-pub struct WeierstrassProjectivePoint<'a> {
-    x: PrimeFieldElement<'a>,
-    y: PrimeFieldElement<'a>,
-    z: PrimeFieldElement<'a>,
+#[derive(Clone)]
+pub struct WeierstrassProjectivePoint {
+    x: PrimeFieldElement,
+    y: PrimeFieldElement,
+    z: PrimeFieldElement,
 }
 
-impl std::fmt::Display for WeierstrassProjectivePoint<'_> {
+impl std::fmt::Display for WeierstrassProjectivePoint {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "\nx: {}\ny: {}\nz: {}", self.x, self.y, self.z)
     }
 }
 
-impl<'a> WeierstassCurve<'a> {
+impl WeierstassCurve {
     pub fn new_point(
         &self,
-        x: PrimeFieldElement<'a>,
-        y: PrimeFieldElement<'a>,
-        z: PrimeFieldElement<'a>,
-    ) -> WeierstrassProjectivePoint<'a> {
+        x: PrimeFieldElement,
+        y: PrimeFieldElement,
+        z: PrimeFieldElement,
+    ) -> WeierstrassProjectivePoint {
         let p = WeierstrassProjectivePoint { x, y, z };
         if self.is_on_curve(&p) {
             return p;
@@ -44,8 +46,38 @@ impl<'a> WeierstassCurve<'a> {
     }
     pub fn is_on_curve(&self, p: &WeierstrassProjectivePoint) -> bool {
         use num_traits::identities::Zero;
-        return ((&p.y.n * &p.y.n)
-            - (&p.x.n * &p.x.n * &p.x.n + &self.a.n * &p.x.n + &self.b.n) % p.x.p)
-            .is_zero();
+        return ((&p.y * &p.y) - &((&p.x * &p.x + &self.a) * &p.x + &self.b)).is_zero();
+    }
+}
+
+impl Add for WeierstrassProjectivePoint {
+    type Output = WeierstrassProjectivePoint;
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+        }
+    }
+}
+impl<'a> Add<&'a WeierstrassProjectivePoint> for WeierstrassProjectivePoint {
+    type Output = WeierstrassProjectivePoint;
+    fn add(self, other: &Self) -> Self {
+        Self {
+            x: self.x + &other.x,
+            y: self.y + &other.y,
+            z: self.z + &other.z,
+        }
+    }
+}
+
+impl<'a, 'b> Add<&'b WeierstrassProjectivePoint> for &'a WeierstrassProjectivePoint {
+    type Output = WeierstrassProjectivePoint;
+    fn add(self, other: &WeierstrassProjectivePoint) -> WeierstrassProjectivePoint {
+        WeierstrassProjectivePoint {
+            x: &self.x + &other.x,
+            y: &self.y + &other.y,
+            z: &self.z + &other.z,
+        }
     }
 }

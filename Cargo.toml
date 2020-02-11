@@ -7,8 +7,13 @@ description = "elliptic curve arithmetic"
 keywords = ["elliptic curve", "math"]
 
 [[bench]]
-name = "uno"
+name = "field"
 harness = false
+
+[[bench]]
+name = "curve"
+harness = false
+
 
 [dependencies]
 bencher = "0.1.5"

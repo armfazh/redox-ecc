@@ -1,13 +1,14 @@
 #[macro_use]
 extern crate bencher;
+use bencher::benchmark_group;
 use bencher::Bencher;
 
 extern crate num_bigint;
 use num_bigint::BigUint;
-use redox_ecc::field::new_field;
+use redox_ecc::field::PrimeField;
 
-fn add(b: &mut Bencher) {
-    let f = new_field(BigUint::from(101u64));
+fn fp_add(b: &mut Bencher) {
+    let f = PrimeField::new(BigUint::from(101u64));
     let mut x = f.elt(15u64);
     let y = f.elt(25u64);
 
@@ -18,8 +19,8 @@ fn add(b: &mut Bencher) {
     });
 }
 
-fn mul(b: &mut Bencher) {
-    let f = new_field(BigUint::from(101u64));
+fn fp_mul(b: &mut Bencher) {
+    let f = PrimeField::new(BigUint::from(101u64));
     let mut x = f.elt(15u64);
     let y = f.elt(25u64);
 
@@ -30,5 +31,5 @@ fn mul(b: &mut Bencher) {
     });
 }
 
-benchmark_group!(benches, add, mul);
-benchmark_main!(benches);
+benchmark_group!(field_arith, fp_add, fp_mul);
+benchmark_main!(field_arith);
