@@ -1,11 +1,25 @@
+//! This is documentation for the `redox-ecc` crate.
+//!
+//! The foo crate is meant to be used for bar.
+
+// #![warn(missing_docs)]
+
+#[macro_use]
+macro_rules! do_if_eq {
+    ($x:expr, $y:expr, $body:stmt, $error: expr) => {
+        if $x == $y {
+            $body
+        } else {
+            panic!($error)
+        }
+    };
+}
+
 pub mod curve;
 pub mod field;
-use std::str;
+pub mod scalar;
 
-// extern crate num_bigint;
-//
-// use num_bigint::BigUint;
-
+/// Returns the version of the crate.
 pub fn version() -> &'static str {
     private_version();
     env!("CARGO_PKG_VERSION")

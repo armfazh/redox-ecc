@@ -9,25 +9,21 @@ use redox_ecc::field::PrimeField;
 
 fn fp_add(b: &mut Bencher) {
     let f = PrimeField::new(BigUint::from(101u64));
-    let mut x = f.elt(15u64);
-    let y = f.elt(25u64);
+    let mut x = f.elt(15i64);
+    let y = f.elt(25i64);
 
     b.iter(|| {
-        for _ in 0..1000 {
-            x = &x + &y;
-        }
+        x = &x + &y;
     });
 }
 
 fn fp_mul(b: &mut Bencher) {
     let f = PrimeField::new(BigUint::from(101u64));
-    let mut x = f.elt(15u64);
-    let y = f.elt(25u64);
+    let mut x = f.elt(15i64);
+    let y = f.elt(25i64);
 
     b.iter(|| {
-        for _ in 0..1000 {
-            x = &x + &y + &y + &y + &y + &y;
-        }
+        x = &x * &y;
     });
 }
 
