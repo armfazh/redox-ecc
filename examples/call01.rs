@@ -11,16 +11,16 @@ fn main() {
 
     let f = &PrimeField::new(BigUint::from(53u64));
     let a = f.elt(-3i64);
-    let b = f.elt(5i64);
-    let r = BigUint::from(63u64);
+    let b = f.elt(6i64);
+    let r = BigUint::from(41u64);
     println!("F: {}", f);
     println!("a: {} ", a);
     println!("b: {} ", b);
     println!("r: {} ", r);
     let curve = WeierstrassCurve { f, a, b, r };
     println!("E: {} ", curve);
-    let g0 = curve.new_point(&f.elt(22i64), &f.elt(27i64), &f.elt(1i64));
-    let g1 = curve.new_point(&f.elt(22i64), &f.elt(27i64), &f.elt(1i64));
+    let g0 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
+    let g1 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
     println!("g0: {} ", g0);
     println!("g1: {} ", g1);
     let g2 = g0 + g1;

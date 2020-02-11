@@ -1,15 +1,14 @@
 //! This is documentation for the `curve` module.
 //!
 //! The curve module is meant to be used for bar.
+
 extern crate num_bigint;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint, ToBigInt};
+
+use std::ops::{Add, Mul};
 
 use crate::field::{PrimeField, PrimeFieldElement};
 use crate::scalar::Scalar;
-use num_bigint::BigUint;
-use num_bigint::ToBigInt;
-
-use std::ops::{Add, Mul};
 
 /// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
 #[derive(Clone, std::cmp::PartialEq)]
@@ -30,51 +29,18 @@ impl std::fmt::Display for WeierstrassCurve<'_> {
         )
     }
 }
-
-#[derive(Clone)]
-pub struct WeierstrassProjectivePoint<'a> {
-    e: &'a WeierstrassCurve<'a>,
-    x: PrimeFieldElement<'a>,
-    y: PrimeFieldElement<'a>,
-    z: PrimeFieldElement<'a>,
-}
-
-impl std::fmt::Display for WeierstrassProjectivePoint<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "\nx: {}\ny: {}\nz: {}", self.x, self.y, self.z)
-    }
-}
-
 impl<'s> WeierstrassCurve<'s> {
-    pub fn new_point(
-        &self,
-        x: &PrimeFieldElement<'s>,
-        y: &PrimeFieldElement<'s>,
-        z: &PrimeFieldElement<'s>,
-    ) -> WeierstrassProjectivePoint {
-        let x = x.clone();
-        let y = y.clone();
-        let z = z.clone();
-        let p = WeierstrassProjectivePoint { e: self, x, y, z };
-        if self.is_on_curve(&p) {
-            p
-        } else {
-            panic!("not a valid point: {}", p)
-        }
-    }
-
     pub fn new_scalar(&self, k: BigInt) -> Scalar {
         let r = self.r.to_bigint().unwrap();
-        let mut s = Scalar { k, r };
-        s.reduce();
-        return s;
+        Scalar { k, r }.reduce()
     }
-
     pub fn identity(&self) -> WeierstrassProjectivePoint {
-        let x = self.f.zero();
-        let y = self.f.one();
-        let z = self.f.zero();
-        WeierstrassProjectivePoint { e: self, x, y, z }
+        WeierstrassProjectivePoint {
+            e: self,
+            x: self.f.zero(),
+            y: self.f.one(),
+            z: self.f.zero(),
+        }
     }
     pub fn is_on_curve(&self, p: &WeierstrassProjectivePoint<'_>) -> bool {
         use num_traits::identities::Zero;
@@ -85,6 +51,15 @@ impl<'s> WeierstrassCurve<'s> {
         let zy = &p.z * &(zz - &(&p.y * &p.y));
         let eq = x3 + &zy;
         eq.is_zero()
+    }
+    pub fn new_point(
+        &self,
+        x: PrimeFieldElement<'s>,
+        y: PrimeFieldElement<'s>,
+        z: PrimeFieldElement<'s>,
+    ) -> WeierstrassProjectivePoint {
+        let p = WeierstrassProjectivePoint { e: self, x, y, z };
+        do_if_eq!(self.is_on_curve(&p), true, p, ERR_ECC_NEW)
     }
     /// core_add implements complete addition formulas for prime order groups.
     // Reference: "Complete addition formulas for prime order elliptic curves" by
@@ -141,15 +116,17 @@ impl<'s> WeierstrassCurve<'s> {
         t0 = t3 * &t1; //  38. t0 = t3 * t1
         z3 = t5 * z3; //   39. Z3 = t5 * Z3
         z3 = z3 + t0; //   40. Z3 = Z3 + t0
-        self.new_point(&x3, &y3, &z3)
+        self.new_point(x3, y3, z3)
     }
+    /// core_mul implements the double&add scalar multiplication method.
+    /// This function run in non-constant time.
     fn core_mul(
         &self,
         p: &WeierstrassProjectivePoint<'s>,
         k: &Scalar,
     ) -> WeierstrassProjectivePoint {
         let mut q = self.identity();
-        for (_, ki) in k.left_to_right().enumerate() {
+        for (_, ki) in k.reduce().left_to_right().enumerate() {
             q = &q + &q;
             if ki {
                 q = q + p;
@@ -158,6 +135,21 @@ impl<'s> WeierstrassCurve<'s> {
         q
     }
 }
+
+#[derive(Clone)]
+pub struct WeierstrassProjectivePoint<'a> {
+    e: &'a WeierstrassCurve<'a>,
+    x: PrimeFieldElement<'a>,
+    y: PrimeFieldElement<'a>,
+    z: PrimeFieldElement<'a>,
+}
+
+impl std::fmt::Display for WeierstrassProjectivePoint<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "\nx: {}\ny: {}\nz: {}", self.x, self.y, self.z)
+    }
+}
+
 impl WeierstrassProjectivePoint<'_> {
     pub fn normalize(&mut self) {
         let inv_z = 1u32 / &self.z;
@@ -188,7 +180,9 @@ impl<'c> Mul<Scalar> for WeierstrassProjectivePoint<'c> {
         self.e.core_mul(&self, &other)
     }
 }
+
 const ERR_ADD_OP: &'static str = "points of different curves";
+const ERR_ECC_NEW: &'static str = "not valid point";
 
 impl<'a, 'b, 'c> Add<&'b WeierstrassProjectivePoint<'c>> for &'a WeierstrassProjectivePoint<'c> {
     type Output = WeierstrassProjectivePoint<'c>;
@@ -197,7 +191,6 @@ impl<'a, 'b, 'c> Add<&'b WeierstrassProjectivePoint<'c>> for &'a WeierstrassProj
         do_if_eq!(self.e, other.e, self.e.core_add(&self, &other), ERR_ADD_OP)
     }
 }
-
 impl<'a, 'c> Add<&'a WeierstrassProjectivePoint<'c>> for WeierstrassProjectivePoint<'c> {
     type Output = WeierstrassProjectivePoint<'c>;
     #[inline]
@@ -205,7 +198,6 @@ impl<'a, 'c> Add<&'a WeierstrassProjectivePoint<'c>> for WeierstrassProjectivePo
         do_if_eq!(self.e, other.e, self.e.core_add(&self, &other), ERR_ADD_OP)
     }
 }
-
 impl<'c> Add for WeierstrassProjectivePoint<'c> {
     type Output = WeierstrassProjectivePoint<'c>;
     #[inline]

@@ -5,10 +5,12 @@
 extern crate num_bigint;
 extern crate num_integer;
 
-use crate::curve::WeierstrassProjectivePoint;
 use num_bigint::BigInt;
 use num_integer::Integer;
+
 use std::ops::{Add, Mul, Sub};
+
+use crate::curve::WeierstrassProjectivePoint;
 
 #[derive(Clone)]
 pub struct Scalar {
@@ -24,15 +26,18 @@ impl std::fmt::Display for Scalar {
 
 impl std::cmp::PartialEq for Scalar {
     fn eq(&self, other: &Self) -> bool {
-        let a = self.k.mod_floor(&self.r);
-        let b = other.k.mod_floor(&other.r);
-        a == b && self.r == other.r
+        let a = self.reduce();
+        let b = other.reduce();
+        a.k == b.k && self.r == other.r
     }
 }
 
 impl Scalar {
-    pub fn reduce(&mut self) {
-        self.k = self.k.mod_floor(&self.r)
+    pub fn reduce(&self) -> Scalar {
+        Scalar {
+            k: self.k.mod_floor(&self.r),
+            r: self.r.clone(),
+        }
     }
     #[inline]
     fn from(&self, n: BigInt) -> Scalar {
