@@ -9,7 +9,7 @@ fn main() {
     println!("{}", version());
     println!("Example!");
 
-    let f = &PrimeField::new(BigUint::from(53u64));
+    let f = PrimeField::new(BigUint::from(53u64));
     let a = f.elt(-3i64);
     let b = f.elt(6i64);
     let r = BigUint::from(41u64);
@@ -17,7 +17,12 @@ fn main() {
     println!("a: {} ", a);
     println!("b: {} ", b);
     println!("r: {} ", r);
-    let curve = WeierstrassCurve { f, a, b, r };
+    let curve = WeierstrassCurve {
+        f: f.clone(),
+        a,
+        b,
+        r,
+    };
     println!("E: {} ", curve);
     let g0 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
     let g1 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
@@ -39,4 +44,14 @@ fn main() {
     for (i, ki) in uno.right_to_left().enumerate() {
         println!("i: {}, ki: {:?}", i, ki);
     }
+
+    use redox_ecc::P521;
+    let ec = P521.get_curve();
+    let mut gg = P521.get_generator();
+    println!("E: {} ", P521.name);
+    println!("E: {} ", ec);
+    println!("G: {} ", gg);
+    gg = &gg + &gg;
+    gg.normalize();
+    println!("G: {} ", gg);
 }

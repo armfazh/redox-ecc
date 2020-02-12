@@ -31,9 +31,12 @@ impl PrimeField {
         self.from(BigInt::from(n))
     }
     #[inline]
-    fn from(&self, n: BigInt) -> PrimeFieldElement {
-        let n = n.mod_floor(&self.modulus);
-        PrimeFieldElement { f: self, n }
+    pub fn from_str(&self, s: &str) -> PrimeFieldElement {
+        use std::str::FromStr;
+        PrimeFieldElement {
+            f: self.clone(),
+            n: BigInt::from_str(s).unwrap(),
+        }
     }
     pub fn zero(&self) -> PrimeFieldElement {
         self.elt(0)
@@ -53,15 +56,20 @@ impl PrimeField {
     fn mul_mod(&self, x: &PrimeFieldElement, y: &PrimeFieldElement) -> PrimeFieldElement {
         self.from(&x.n * &y.n)
     }
+    #[inline]
+    fn from(&self, n: BigInt) -> PrimeFieldElement {
+        let n = n.mod_floor(&self.modulus);
+        PrimeFieldElement { f: self.clone(), n }
+    }
 }
 
 #[derive(Clone, std::cmp::PartialEq)]
-pub struct PrimeFieldElement<'a> {
-    f: &'a PrimeField,
+pub struct PrimeFieldElement {
+    f: PrimeField,
     n: BigInt,
 }
 
-impl std::fmt::Display for PrimeFieldElement<'_> {
+impl std::fmt::Display for PrimeFieldElement {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.n)
     }
@@ -72,22 +80,22 @@ const ERR_INV_OP: &'static str = "numerator must be 1u32";
 
 macro_rules! impl_bin_op {
     ($trait:ident, $name:ident, $method:ident) => {
-        impl<'a, 'b, 'c> $trait<&'b PrimeFieldElement<'c>> for &'a PrimeFieldElement<'c> {
-            type Output = PrimeFieldElement<'c>;
+        impl<'a, 'b, 'c> $trait<&'b PrimeFieldElement> for &'a PrimeFieldElement {
+            type Output = PrimeFieldElement;
             #[inline]
-            fn $name(self, other: &PrimeFieldElement<'c>) -> Self::Output {
+            fn $name(self, other: &PrimeFieldElement) -> Self::Output {
                 do_if_eq!(self.f, other.f, self.f.$method(&self, &other), ERR_BIN_OP)
             }
         }
-        impl<'a, 'c> $trait<&'a PrimeFieldElement<'c>> for PrimeFieldElement<'c> {
-            type Output = PrimeFieldElement<'c>;
+        impl<'a, 'c> $trait<&'a PrimeFieldElement> for PrimeFieldElement {
+            type Output = PrimeFieldElement;
             #[inline]
             fn $name(self, other: &Self) -> Self::Output {
                 do_if_eq!(self.f, other.f, self.f.$method(&self, &other), ERR_BIN_OP)
             }
         }
-        impl<'c> $trait for PrimeFieldElement<'c> {
-            type Output = PrimeFieldElement<'c>;
+        impl<'c> $trait for PrimeFieldElement {
+            type Output = PrimeFieldElement;
             #[inline]
             fn $name(self, other: Self) -> Self::Output {
                 do_if_eq!(self.f, other.f, self.f.$method(&self, &other), ERR_BIN_OP)
@@ -100,10 +108,10 @@ impl_bin_op!(Add, add, add_mod);
 impl_bin_op!(Sub, sub, sub_mod);
 impl_bin_op!(Mul, mul, mul_mod);
 
-impl<'a, 'c> Div<&'a PrimeFieldElement<'c>> for u32 {
-    type Output = PrimeFieldElement<'c>;
+impl<'a> Div<&'a PrimeFieldElement> for u32 {
+    type Output = PrimeFieldElement;
     #[inline]
-    fn div(self, other: &PrimeFieldElement<'c>) -> Self::Output {
+    fn div(self, other: &PrimeFieldElement) -> Self::Output {
         do_if_eq!(
             self,
             1u32,
@@ -111,7 +119,7 @@ impl<'a, 'c> Div<&'a PrimeFieldElement<'c>> for u32 {
                 let p = &other.f.modulus;
                 let p_minus_2 = p.sub(2i32);
                 PrimeFieldElement {
-                    f: other.f,
+                    f: other.f.clone(),
                     n: other.n.modpow(&p_minus_2, &p),
                 }
             },
@@ -120,7 +128,7 @@ impl<'a, 'c> Div<&'a PrimeFieldElement<'c>> for u32 {
     }
 }
 
-impl num_traits::identities::Zero for PrimeFieldElement<'_> {
+impl num_traits::identities::Zero for PrimeFieldElement {
     fn zero() -> Self {
         unimplemented!()
     }

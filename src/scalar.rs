@@ -60,24 +60,24 @@ impl Scalar {
     }
 }
 
-impl<'a> Mul<WeierstrassProjectivePoint<'a>> for Scalar {
-    type Output = WeierstrassProjectivePoint<'a>;
+impl Mul<WeierstrassProjectivePoint> for Scalar {
+    type Output = WeierstrassProjectivePoint;
     #[inline]
     fn mul(self, other: Self::Output) -> Self::Output {
         other * &self
     }
 }
 
-impl<'a, 'b> Mul<&'b WeierstrassProjectivePoint<'a>> for Scalar {
-    type Output = WeierstrassProjectivePoint<'a>;
+impl<'b> Mul<&'b WeierstrassProjectivePoint> for Scalar {
+    type Output = WeierstrassProjectivePoint;
     #[inline]
     fn mul(self, other: &'b Self::Output) -> Self::Output {
         other * &self
     }
 }
 
-impl<'a, 'b, 'c> Mul<&'b WeierstrassProjectivePoint<'c>> for &'a Scalar {
-    type Output = WeierstrassProjectivePoint<'c>;
+impl<'a, 'b> Mul<&'b WeierstrassProjectivePoint> for &'a Scalar {
+    type Output = WeierstrassProjectivePoint;
     #[inline]
     fn mul(self, other: &'b Self::Output) -> Self::Output {
         other * &self

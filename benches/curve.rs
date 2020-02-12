@@ -1,43 +1,58 @@
 #[macro_use]
 extern crate bencher;
-use crate::num_bigint::ToBigInt;
-use bencher::benchmark_group;
-use bencher::Bencher;
-use std::ops::Sub;
+use bencher::{benchmark_group, Bencher};
 
 extern crate num_bigint;
-use num_bigint::BigUint;
-use redox_ecc::curve::WeierstrassCurve;
-use redox_ecc::field::PrimeField;
+use crate::num_bigint::ToBigInt;
 
-fn ec_add(ben: &mut Bencher) {
-    let f = &PrimeField::new(BigUint::from(53u64));
-    let a = f.elt(-3i64);
-    let b = f.elt(6i64);
-    let r = BigUint::from(41u64);
-    let curve = WeierstrassCurve { f, a, b, r };
-    let mut g0 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
-    let g1 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
+use std::ops::Sub;
 
-    ben.iter(|| {
-        g0 = &g0 + &g1;
+use redox_ecc::CurveID;
+use redox_ecc::{P256, P384, P521};
+
+fn add(b: &mut Bencher, curve: &CurveID) {
+    let mut g = curve.get_generator();
+
+    b.iter(|| {
+        g = &g + &g;
     });
 }
 
-fn ec_mul(ben: &mut Bencher) {
-    let f = &PrimeField::new(BigUint::from(53u64));
-    let a = f.elt(-3i64);
-    let b = f.elt(6i64);
-    let r = BigUint::from(41u64);
-    let curve = WeierstrassCurve { f, a, b, r };
-    let mut g0 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
-    let order = &curve.r;
-    let k = curve.new_scalar(order.sub(1u32).to_bigint().unwrap());
-
-    ben.iter(|| {
-        g0 = &k * &g0;
+fn mul(b: &mut Bencher, curve: &CurveID) {
+    let ec = curve.get_curve();
+    let mut g = curve.get_generator();
+    let order = &ec.r;
+    let k = ec.new_scalar(order.sub(1u32).to_bigint().unwrap());
+    b.iter(|| {
+        g = &k * &g;
     });
 }
 
-benchmark_group!(curve_arith, ec_add, ec_mul);
-benchmark_main!(curve_arith);
+fn add_p256(b: &mut Bencher) {
+    add(b, &P256)
+}
+fn add_p384(b: &mut Bencher) {
+    add(b, &P384)
+}
+fn add_p521(b: &mut Bencher) {
+    add(b, &P521)
+}
+fn mul_p256(b: &mut Bencher) {
+    mul(b, &P256)
+}
+fn mul_p384(b: &mut Bencher) {
+    mul(b, &P384)
+}
+fn mul_p521(b: &mut Bencher) {
+    mul(b, &P521)
+}
+benchmark_group!(
+    curve_bench,
+    add_p256,
+    add_p384,
+    add_p521,
+    mul_p256,
+    mul_p384,
+    mul_p521
+);
+benchmark_main!(curve_bench);
