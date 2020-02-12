@@ -5,16 +5,18 @@
 extern crate num_bigint;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 
-use std::ops::{Add, Mul};
+use num_traits::identities::{One, Zero};
+use std::ops::{Add, Mul, Neg};
 
 use crate::field::{PrimeField, PrimeFieldElement};
 use crate::scalar::Scalar;
 
 /// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
+///
+/// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct WeierstrassCurve {
     pub f: PrimeField,
-    /// Parameter `a` of curve.
     pub a: PrimeFieldElement,
     pub b: PrimeFieldElement,
     pub r: BigUint,
@@ -30,20 +32,24 @@ impl std::fmt::Display for WeierstrassCurve {
     }
 }
 impl WeierstrassCurve {
+    pub fn new_point(
+        &self,
+        x: PrimeFieldElement,
+        y: PrimeFieldElement,
+        z: PrimeFieldElement,
+    ) -> WeierstrassProjectivePoint {
+        let e = self.clone();
+        let p = WeierstrassProjectivePoint { e, x, y, z };
+        do_if_eq!(self.is_on_curve(&p), true, p, ERR_ECC_NEW)
+    }
     pub fn new_scalar(&self, k: BigInt) -> Scalar {
         let r = self.r.to_bigint().unwrap();
         Scalar { k, r }.reduce()
     }
     pub fn identity(&self) -> WeierstrassProjectivePoint {
-        WeierstrassProjectivePoint {
-            e: self.clone(),
-            x: self.f.zero(),
-            y: self.f.one(),
-            z: self.f.zero(),
-        }
+        self.new_point(self.f.zero(), self.f.one(), self.f.zero())
     }
     pub fn is_on_curve(&self, p: &WeierstrassProjectivePoint) -> bool {
-        use num_traits::identities::Zero;
         let x3 = &p.x * &p.x * &p.x;
         let bz = &self.b * &p.z;
         let ax = &self.a * &p.x;
@@ -52,19 +58,8 @@ impl WeierstrassCurve {
         let eq = x3 + &zy;
         eq.is_zero()
     }
-    pub fn new_point(
-        &self,
-        x: PrimeFieldElement,
-        y: PrimeFieldElement,
-        z: PrimeFieldElement,
-    ) -> WeierstrassProjectivePoint {
-        let p = WeierstrassProjectivePoint {
-            e: self.clone(),
-            x,
-            y,
-            z,
-        };
-        do_if_eq!(self.is_on_curve(&p), true, p, ERR_ECC_NEW)
+    fn core_neg(&self, p: &WeierstrassProjectivePoint) -> WeierstrassProjectivePoint {
+        self.new_point(p.x.clone(), -&p.y, p.z.clone())
     }
     /// core_add implements complete addition formulas for prime order groups.
     // Reference: "Complete addition formulas for prime order elliptic curves" by
@@ -127,7 +122,7 @@ impl WeierstrassCurve {
     /// This function run in non-constant time.
     fn core_mul(&self, p: &WeierstrassProjectivePoint, k: &Scalar) -> WeierstrassProjectivePoint {
         let mut q = self.identity();
-        for (_, ki) in k.reduce().left_to_right().enumerate() {
+        for ki in k.reduce().left_to_right() {
             q = &q + &q;
             if ki {
                 q = q + p;
@@ -156,7 +151,20 @@ impl WeierstrassProjectivePoint {
         let inv_z = 1u32 / &self.z;
         self.x = &self.x * &inv_z;
         self.y = &self.y * &inv_z;
-        self.z = self.e.f.one();
+        self.z.set_one();
+    }
+    pub fn is_identity(&self) -> bool {
+        self.x.is_zero() && !self.y.is_zero() && self.z.is_zero()
+    }
+}
+
+impl PartialEq for WeierstrassProjectivePoint {
+    fn eq(&self, other: &Self) -> bool {
+        let x1z2 = &self.x * &other.z;
+        let z1x2 = &self.z * &other.x;
+        let y1z2 = &self.y * &other.z;
+        let z1y2 = &self.z * &other.y;
+        self.e == other.e && x1z2 == z1x2 && y1z2 == z1y2
     }
 }
 
@@ -182,27 +190,40 @@ impl Mul<Scalar> for WeierstrassProjectivePoint {
     }
 }
 
+macro_rules! impl_add_point {
+    ($point:ident, $method:ident) => {
+        impl<'a, 'b> Add<&'b $point> for &'a $point {
+            type Output = $point;
+            #[inline]
+            fn add(self, other: &$point) -> $point {
+                do_if_eq!(self.e, other.e, self.e.$method(&self, &other), ERR_ADD_OP)
+            }
+        }
+        impl<'a> Add<&'a $point> for $point {
+            type Output = $point;
+            #[inline]
+            fn add(self, other: &Self) -> Self::Output {
+                do_if_eq!(self.e, other.e, self.e.$method(&self, &other), ERR_ADD_OP)
+            }
+        }
+        impl Add for $point {
+            type Output = $point;
+            #[inline]
+            fn add(self, other: Self) -> Self::Output {
+                do_if_eq!(self.e, other.e, self.e.$method(&self, &other), ERR_ADD_OP)
+            }
+        }
+    };
+}
+
+impl_add_point!(WeierstrassProjectivePoint, core_add);
+
+impl<'a> Neg for &'a WeierstrassProjectivePoint {
+    type Output = WeierstrassProjectivePoint;
+    fn neg(self) -> Self::Output {
+        self.e.core_neg(&self)
+    }
+}
+
 const ERR_ADD_OP: &'static str = "points of different curves";
 const ERR_ECC_NEW: &'static str = "not valid point";
-
-impl<'a, 'b> Add<&'b WeierstrassProjectivePoint> for &'a WeierstrassProjectivePoint {
-    type Output = WeierstrassProjectivePoint;
-    #[inline]
-    fn add(self, other: &WeierstrassProjectivePoint) -> WeierstrassProjectivePoint {
-        do_if_eq!(self.e, other.e, self.e.core_add(&self, &other), ERR_ADD_OP)
-    }
-}
-impl<'a> Add<&'a WeierstrassProjectivePoint> for WeierstrassProjectivePoint {
-    type Output = WeierstrassProjectivePoint;
-    #[inline]
-    fn add(self, other: &Self) -> Self::Output {
-        do_if_eq!(self.e, other.e, self.e.core_add(&self, &other), ERR_ADD_OP)
-    }
-}
-impl Add for WeierstrassProjectivePoint {
-    type Output = WeierstrassProjectivePoint;
-    #[inline]
-    fn add(self, other: Self) -> Self::Output {
-        do_if_eq!(self.e, other.e, self.e.core_add(&self, &other), ERR_ADD_OP)
-    }
-}

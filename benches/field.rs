@@ -1,31 +1,23 @@
-#[macro_use]
-extern crate bencher;
-use bencher::benchmark_group;
-use bencher::Bencher;
+use criterion::{criterion_group, criterion_main, Benchmark, Criterion};
 
-extern crate num_bigint;
-use num_bigint::BigUint;
-use redox_ecc::field::PrimeField;
+use redox_ecc::{P256, P384, P521};
 
-fn fp_add(b: &mut Bencher) {
-    let f = PrimeField::new(BigUint::from(101u64));
-    let mut x = f.elt(15i64);
-    let y = f.elt(25i64);
+fn arith(c: &mut Criterion) {
+    for curve in [&P256, &P384, &P521].iter() {
+        let f = curve.get_field();
+        let mut x0 = f.elt(15i64);
+        let mut x1 = f.elt(15i64);
+        let y0 = f.elt(15i64);
+        let y1 = f.elt(15i64);
 
-    b.iter(|| {
-        x = &x + &y;
-    });
+        c.bench(
+            format!("{}/fp", curve.name).as_str(),
+            Benchmark::new("add", move |b| b.iter(|| x0 = &x0 + &y0))
+                .with_function("mul", move |b| b.iter(|| x1 = &x1 * &y1))
+                .sample_size(10),
+        );
+    }
 }
 
-fn fp_mul(b: &mut Bencher) {
-    let f = PrimeField::new(BigUint::from(101u64));
-    let mut x = f.elt(15i64);
-    let y = f.elt(25i64);
-
-    b.iter(|| {
-        x = &x * &y;
-    });
-}
-
-benchmark_group!(field_arith, fp_add, fp_mul);
-benchmark_main!(field_arith);
+criterion_group!(field_bench, arith);
+criterion_main!(field_bench);

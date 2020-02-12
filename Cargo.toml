@@ -15,7 +15,9 @@ name = "curve"
 harness = false
 
 [dependencies]
-bencher = "0.1.5"
 num-bigint = "0.2.6"
 num-integer = "0.1.42"
 num-traits = "0.2.11"
+
+[dev-dependencies]
+criterion = "0.3"

@@ -18,8 +18,10 @@ macro_rules! do_if_eq {
     };
 }
 
-pub mod curve;
 pub mod field;
+
+pub mod curve;
+
 pub mod scalar;
 
 /// Returns the version of the crate.

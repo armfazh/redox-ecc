@@ -10,8 +10,6 @@ use num_integer::Integer;
 
 use std::ops::{Add, Mul, Sub};
 
-use crate::curve::WeierstrassProjectivePoint;
-
 #[derive(Clone)]
 pub struct Scalar {
     pub(super) k: BigInt,
@@ -60,6 +58,7 @@ impl Scalar {
     }
 }
 
+use crate::curve::WeierstrassProjectivePoint;
 impl Mul<WeierstrassProjectivePoint> for Scalar {
     type Output = WeierstrassProjectivePoint;
     #[inline]
