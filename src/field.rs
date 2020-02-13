@@ -5,11 +5,11 @@
 extern crate num_bigint;
 extern crate num_integer;
 
-use num_bigint::BigInt;
-use num_bigint::BigUint;
-use num_bigint::ToBigInt;
+use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
+use num_traits::identities::{One, Zero};
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::str::FromStr;
 
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct PrimeField {
@@ -23,49 +23,42 @@ impl std::fmt::Display for PrimeField {
 }
 
 impl PrimeField {
-    pub fn new(modulus: BigUint) -> PrimeField {
-        let modulus = modulus.to_bigint().unwrap();
+    pub fn new(prime: BigUint) -> PrimeField {
+        // TODO: verify whether modulus is a prime number.
+        let modulus = prime.to_bigint().unwrap();
         PrimeField { modulus }
     }
-    pub fn elt(&self, n: i64) -> PrimeFieldElement {
-        self.from(BigInt::from(n))
-    }
     #[inline]
-    pub fn from_str(&self, s: &str) -> PrimeFieldElement {
-        use std::str::FromStr;
-        PrimeFieldElement {
-            f: self.clone(),
-            n: BigInt::from_str(s).unwrap(),
-        }
-    }
-    pub fn zero(&self) -> PrimeFieldElement {
-        self.elt(0)
-    }
-    pub fn one(&self) -> PrimeFieldElement {
-        self.elt(1)
-    }
-    #[inline]
-    fn neg_mod(&self, x: &PrimeFieldElement) -> PrimeFieldElement {
-        self.from(-&x.n)
-    }
-    #[inline]
-    fn add_mod(&self, x: &PrimeFieldElement, y: &PrimeFieldElement) -> PrimeFieldElement {
-        self.from(&x.n + &y.n)
-    }
-    #[inline]
-    fn sub_mod(&self, x: &PrimeFieldElement, y: &PrimeFieldElement) -> PrimeFieldElement {
-        self.from(&x.n - &y.n)
-    }
-    #[inline]
-    fn mul_mod(&self, x: &PrimeFieldElement, y: &PrimeFieldElement) -> PrimeFieldElement {
-        self.from(&x.n * &y.n)
-    }
-    #[inline]
-    fn from(&self, n: BigInt) -> PrimeFieldElement {
+    pub fn new_elt(&self, n: BigInt) -> PrimeFieldElement {
         let n = n.mod_floor(&self.modulus);
         PrimeFieldElement { f: self.clone(), n }
     }
+    pub fn from_str(&self, s: &str) -> PrimeFieldElement {
+        self.new_elt(BigInt::from_str(s).unwrap())
+    }
+    pub fn zero(&self) -> PrimeFieldElement {
+        self.new_elt(BigInt::zero())
+    }
+    pub fn one(&self) -> PrimeFieldElement {
+        self.new_elt(BigInt::one())
+    }
 }
+
+macro_rules! impl_from_factory {
+    ($target:ty, $product:ident for $($other:ty)+ ) => {
+     $(
+        impl crate::FromFactory<$other> for $target {
+            type Output = $product;
+            fn from(&self, n: $other) -> Self::Output {
+                self.new_elt(BigInt::from(n))
+            }
+        }
+    )+
+    };
+}
+
+use std::convert::From;
+impl_from_factory!(PrimeField, PrimeFieldElement for u8 u16 u32 u64 i8 i16 i32 i64);
 
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct PrimeFieldElement {
@@ -79,43 +72,28 @@ impl std::fmt::Display for PrimeFieldElement {
     }
 }
 
-const ERR_BIN_OP: &'static str = "elements of different fields";
-const ERR_INV_OP: &'static str = "numerator must be 1u32";
-
-macro_rules! impl_bin_op {
-    ($trait:ident, $name:ident, $method:ident) => {
-        impl<'a, 'b, 'c> $trait<&'b PrimeFieldElement> for &'a PrimeFieldElement {
-            type Output = PrimeFieldElement;
-            #[inline]
-            fn $name(self, other: &PrimeFieldElement) -> Self::Output {
-                do_if_eq!(self.f, other.f, self.f.$method(&self, &other), ERR_BIN_OP)
-            }
-        }
-        impl<'a, 'c> $trait<&'a PrimeFieldElement> for PrimeFieldElement {
-            type Output = PrimeFieldElement;
-            #[inline]
-            fn $name(self, other: &Self) -> Self::Output {
-                do_if_eq!(self.f, other.f, self.f.$method(&self, &other), ERR_BIN_OP)
-            }
-        }
-        impl<'c> $trait for PrimeFieldElement {
-            type Output = PrimeFieldElement;
-            #[inline]
-            fn $name(self, other: Self) -> Self::Output {
-                do_if_eq!(self.f, other.f, self.f.$method(&self, &other), ERR_BIN_OP)
-            }
-        }
-    };
-}
-
-impl_bin_op!(Add, add, add_mod);
-impl_bin_op!(Sub, sub, sub_mod);
-impl_bin_op!(Mul, mul, mul_mod);
-
-impl<'a> Neg for &'a PrimeFieldElement {
-    type Output = PrimeFieldElement;
-    fn neg(self) -> Self::Output {
-        self.f.neg_mod(&self)
+impl PrimeFieldElement {
+    #[inline]
+    fn neg_mod(&self) -> PrimeFieldElement {
+        self.f.new_elt(-&self.n)
+    }
+    #[inline]
+    fn add_mod(&self, other: &PrimeFieldElement) -> PrimeFieldElement {
+        self.f.new_elt(&self.n + &other.n)
+    }
+    #[inline]
+    fn sub_mod(&self, other: &PrimeFieldElement) -> PrimeFieldElement {
+        self.f.new_elt(&self.n - &other.n)
+    }
+    #[inline]
+    fn mul_mod(&self, other: &PrimeFieldElement) -> PrimeFieldElement {
+        self.f.new_elt(&self.n * &other.n)
+    }
+    #[inline]
+    fn inv_mod(&self) -> PrimeFieldElement {
+        let p = &self.f.modulus;
+        let p_minus_2 = p.sub(2u32);
+        self.f.new_elt(self.n.modpow(&p_minus_2, &p))
     }
 }
 
@@ -123,21 +101,17 @@ impl<'a> Div<&'a PrimeFieldElement> for u32 {
     type Output = PrimeFieldElement;
     #[inline]
     fn div(self, other: &PrimeFieldElement) -> Self::Output {
-        do_if_eq!(
-            self,
-            1u32,
-            {
-                let p = &other.f.modulus;
-                let p_minus_2 = p.sub(2i32);
-                PrimeFieldElement {
-                    f: other.f.clone(),
-                    n: other.n.modpow(&p_minus_2, &p),
-                }
-            },
-            ERR_INV_OP
-        )
+        do_if_eq!(self, 1u32, other.inv_mod(), ERR_INV_OP)
     }
 }
+
+impl_binary_op!(PrimeFieldElement, Add, add, add_mod, f, ERR_BIN_OP);
+impl_binary_op!(PrimeFieldElement, Sub, sub, sub_mod, f, ERR_BIN_OP);
+impl_binary_op!(PrimeFieldElement, Mul, mul, mul_mod, f, ERR_BIN_OP);
+impl_unary_op!(PrimeFieldElement, Neg, neg, neg_mod);
+
+const ERR_BIN_OP: &'static str = "elements of different fields";
+const ERR_INV_OP: &'static str = "numerator must be 1u32";
 
 impl num_traits::identities::Zero for PrimeFieldElement {
     fn zero() -> Self {

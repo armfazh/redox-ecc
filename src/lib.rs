@@ -7,13 +7,70 @@
 #[cfg(test)]
 mod tests;
 
-#[macro_use]
+pub trait FromFactory<T>: Sized {
+    type Output;
+    fn from(&self, _: T) -> Self::Output;
+}
+
 macro_rules! do_if_eq {
     ($x:expr, $y:expr, $body:stmt, $error: expr) => {
         if $x == $y {
             $body
         } else {
             panic!($error)
+        }
+    };
+}
+
+macro_rules! impl_unary_op {
+    ($target:ident,
+     $trait:ident,
+     $name:ident,
+     $method:ident) => {
+        impl<'a> $trait for &'a $target {
+            type Output = $target;
+            #[inline]
+            fn $name(self) -> Self::Output {
+                self.$method()
+            }
+        }
+        impl $trait for $target {
+            type Output = $target;
+            #[inline]
+            fn $name(self) -> Self::Output {
+                self.$method()
+            }
+        }
+    };
+}
+
+macro_rules! impl_binary_op {
+    ($target:ident,
+     $trait:ident,
+     $name:ident,
+     $method:ident,
+     $field:ident,
+     $error:ident) => {
+        impl<'a, 'b> $trait<&'b $target> for &'a $target {
+            type Output = $target;
+            #[inline]
+            fn $name(self, other: &$target) -> Self::Output {
+                do_if_eq!(self.$field, other.$field, self.$method(&other), $error)
+            }
+        }
+        impl<'a> $trait<&'a $target> for $target {
+            type Output = $target;
+            #[inline]
+            fn $name(self, other: &'a Self) -> Self::Output {
+                do_if_eq!(self.$field, other.$field, self.$method(&other), $error)
+            }
+        }
+        impl $trait for $target {
+            type Output = $target;
+            #[inline]
+            fn $name(self, other: Self) -> Self::Output {
+                do_if_eq!(self.$field, other.$field, self.$method(&other), $error)
+            }
         }
     };
 }
@@ -97,4 +154,14 @@ pub static P521: CurveID = CurveID {
     r: "6864797660130609714981900799081393217269435300143305409394463459185543183397655394245057746333217197532963996371363321113864768612440380340372808892707005449",
     gx:"2661740802050217063228768716723360960729859168756973147706671368418802944996427808491545080627771902352094241225065558662157113545570916814161637315895999846",
     gy:"3757180025770020463545507224491183603594455134769762486694567779615544477440556316691234405012945539562144444537289428522585666729196580810124344277578376784",
+};
+/// SECP256K1 is a 256-bit elliptic curve knwon as secp256k1.
+pub static SECP256K1: CurveID = CurveID {
+    name: "secp256k1",
+    p: "115792089237316195423570985008687907853269984665640564039457584007908834671663",
+    a: "0",
+    b: "7",
+    r: "115792089237316195423570985008687907852837564279074904382605163141518161494337",
+    gx: "55066263022277343669578718895168534326250603453777594175500187360389116729240",
+    gy: "32670510020758816978083085130507043184471273380659243275938904335757337482424",
 };

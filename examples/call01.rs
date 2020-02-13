@@ -4,14 +4,15 @@ use num_bigint::{BigInt, BigUint};
 use redox_ecc::curve::WeierstrassCurve;
 use redox_ecc::field::PrimeField;
 use redox_ecc::version;
+use redox_ecc::FromFactory;
 
 fn main() {
     println!("{}", version());
     println!("Example!");
 
     let f = PrimeField::new(BigUint::from(53u64));
-    let a = f.elt(-3i64);
-    let b = f.elt(6i64);
+    let a = f.from(-3);
+    let b = f.from(6);
     let r = BigUint::from(41u64);
     println!("F: {}", f);
     println!("a: {} ", a);
@@ -24,8 +25,8 @@ fn main() {
         r,
     };
     println!("E: {} ", curve);
-    let g0 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
-    let g1 = curve.new_point(f.elt(41i64), f.elt(13i64), f.elt(1i64));
+    let g0 = curve.new_point(f.from(41u64), f.from(13u64), f.from(1u64));
+    let g1 = curve.new_point(f.from(41u64), f.from(13u64), f.from(1u64));
     println!("g0: {} ", g0);
     println!("g1: {} ", g1);
     let g2 = g0 + g1;
@@ -38,10 +39,10 @@ fn main() {
     g4.normalize();
     println!("g4: {} ", g4);
 
-    for (i, ki) in uno.left_to_right().enumerate() {
+    for (i, ki) in uno.iter_lr().enumerate() {
         println!("i: {}, ki: {:?}", i, ki);
     }
-    for (i, ki) in uno.right_to_left().enumerate() {
+    for (i, ki) in uno.iter_rl().enumerate() {
         println!("i: {}, ki: {:?}", i, ki);
     }
 
