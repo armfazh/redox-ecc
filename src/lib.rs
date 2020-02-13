@@ -114,14 +114,18 @@ impl CurveID {
     }
     pub fn get_curve(&self) -> WeierstrassCurve {
         let f = self.get_field();
-        let a = f.from_str(self.a);
-        let b = f.from_str(self.b);
+        let a = f.new_elt_str(self.a);
+        let b = f.new_elt_str(self.b);
         let r = BigUint::from_str(self.r).unwrap();
         WeierstrassCurve { f, a, b, r }
     }
     pub fn get_generator(&self) -> WeierstrassProjectivePoint {
         let e = self.get_curve();
-        e.new_point(e.f.from_str(self.gx), e.f.from_str(self.gy), e.f.one())
+        e.new_point(
+            e.f.new_elt_str(self.gx),
+            e.f.new_elt_str(self.gy),
+            e.f.one(),
+        )
     }
 }
 
@@ -165,3 +169,51 @@ pub static SECP256K1: CurveID = CurveID {
     gx: "55066263022277343669578718895168534326250603453777594175500187360389116729240",
     gy: "32670510020758816978083085130507043184471273380659243275938904335757337482424",
 };
+
+use num_bigint::{BigInt, ToBigInt};
+use num_traits::identities::Zero;
+
+pub trait Field {
+    type Elt;
+    fn new(&self, _: BigInt) -> Self::Elt;
+}
+
+pub fn new_fp(p: BigUint) -> impl Field<Elt = Fp> {
+    Fp {
+        n: BigInt::zero(),
+        p: p.to_bigint().unwrap(),
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Fp {
+    n: BigInt,
+    p: BigInt,
+}
+
+impl std::fmt::Display for Fp {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.n)
+    }
+}
+
+impl Field for Fp {
+    type Elt = Fp;
+    fn new(&self, a: BigInt) -> Self::Elt {
+        Fp {
+            n: a % &self.p,
+            p: self.p.clone(),
+        }
+    }
+}
+
+impl std::ops::Add for Fp {
+    type Output = Fp;
+    fn add(self, other: Self) -> Self::Output {
+        if self.p == other.p {
+            self.new(&self.n + other.n)
+        } else {
+            panic!("no se puede")
+        }
+    }
+}

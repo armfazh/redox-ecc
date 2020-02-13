@@ -6,7 +6,23 @@ use redox_ecc::field::PrimeField;
 use redox_ecc::version;
 use redox_ecc::FromFactory;
 
+use redox_ecc::{new_fp, Field};
+
 fn main() {
+    let fp = new_fp(BigUint::from(5u64));
+    let a = fp.new(BigInt::from(8));
+    let b = a.new(BigInt::from(9));
+    let c = a.new(BigInt::from(9));
+
+    println!("a: {}", a);
+    println!("b: {}", b);
+    println!("b: {}", c);
+    println!("b: {}", a + b);
+
+    println!("{}", version());
+}
+
+fn _log() {
     println!("{}", version());
     println!("Example!");
 

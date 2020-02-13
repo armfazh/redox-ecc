@@ -16,10 +16,10 @@ pub struct PrimeField {
     modulus: BigInt,
 }
 
-impl std::fmt::Display for PrimeField {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "GF({})", self.modulus)
-    }
+#[derive(Clone, std::cmp::PartialEq)]
+pub struct PrimeFieldElement {
+    f: PrimeField,
+    n: BigInt,
 }
 
 impl PrimeField {
@@ -33,7 +33,16 @@ impl PrimeField {
         let n = n.mod_floor(&self.modulus);
         PrimeFieldElement { f: self.clone(), n }
     }
-    pub fn from_str(&self, s: &str) -> PrimeFieldElement {
+}
+
+impl std::fmt::Display for PrimeField {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "GF({})", self.modulus)
+    }
+}
+
+impl PrimeField {
+    pub fn new_elt_str(&self, s: &str) -> PrimeFieldElement {
         self.new_elt(BigInt::from_str(s).unwrap())
     }
     pub fn zero(&self) -> PrimeFieldElement {
@@ -45,7 +54,8 @@ impl PrimeField {
 }
 
 macro_rules! impl_from_factory {
-    ($target:ty, $product:ident for $($other:ty)+ ) => {
+    ($target:ident produces $product:ident from $($other:ty)+ ) => {
+    use std::convert::From;
      $(
         impl crate::FromFactory<$other> for $target {
             type Output = $product;
@@ -57,14 +67,7 @@ macro_rules! impl_from_factory {
     };
 }
 
-use std::convert::From;
-impl_from_factory!(PrimeField, PrimeFieldElement for u8 u16 u32 u64 i8 i16 i32 i64);
-
-#[derive(Clone, std::cmp::PartialEq)]
-pub struct PrimeFieldElement {
-    f: PrimeField,
-    n: BigInt,
-}
+impl_from_factory!(PrimeField produces PrimeFieldElement from u8 u16 u32 u64 i8 i16 i32 i64);
 
 impl std::fmt::Display for PrimeFieldElement {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
