@@ -8,7 +8,7 @@ use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::identities::{One, Zero};
 use std::ops::{Add, Mul, Neg};
 
-use crate::field::{PrimeField, PrimeFieldElement};
+use crate::field::{Field, Fp};
 use crate::scalar::Scalar;
 
 /// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
@@ -16,9 +16,9 @@ use crate::scalar::Scalar;
 /// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct WeierstrassCurve {
-    pub f: PrimeField,
-    pub a: PrimeFieldElement,
-    pub b: PrimeFieldElement,
+    pub f: Fp,
+    pub a: Fp,
+    pub b: Fp,
     pub r: BigUint,
 }
 
@@ -32,12 +32,7 @@ impl std::fmt::Display for WeierstrassCurve {
     }
 }
 impl WeierstrassCurve {
-    pub fn new_point(
-        &self,
-        x: PrimeFieldElement,
-        y: PrimeFieldElement,
-        z: PrimeFieldElement,
-    ) -> WeierstrassProjectivePoint {
+    pub fn new_point(&self, x: Fp, y: Fp, z: Fp) -> WeierstrassProjectivePoint {
         let e = self.clone();
         let p = WeierstrassProjectivePoint { e, x, y, z };
         do_if_eq!(self.is_on_curve(&p), true, p, ERR_ECC_NEW)
@@ -63,9 +58,9 @@ impl WeierstrassCurve {
 #[derive(Clone)]
 pub struct WeierstrassProjectivePoint {
     e: WeierstrassCurve,
-    x: PrimeFieldElement,
-    y: PrimeFieldElement,
-    z: PrimeFieldElement,
+    x: Fp,
+    y: Fp,
+    z: Fp,
 }
 
 impl std::fmt::Display for WeierstrassProjectivePoint {
