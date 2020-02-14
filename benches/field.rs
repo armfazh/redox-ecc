@@ -12,7 +12,7 @@ fn arith(c: &mut Criterion) {
         let y1 = f.from(15i64);
 
         c.bench(
-            format!("{}/fp", curve.name).as_str(),
+            format!("{}/fp", curve).as_str(),
             Benchmark::new("add", move |b| b.iter(|| x0 = &x0 + &y0))
                 .with_function("mul", move |b| b.iter(|| x1 = &x1 * &y1))
                 .sample_size(10),

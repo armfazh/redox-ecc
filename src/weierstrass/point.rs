@@ -3,73 +3,33 @@
 //! The curve module is meant to be used for bar.
 
 extern crate num_bigint;
-use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_bigint::ToBigInt;
 
 use num_traits::identities::{One, Zero};
+
 use std::ops::{Add, Mul, Neg};
 
-use crate::field::{Field, Fp};
-use crate::scalar::Scalar;
-
-/// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
-///
-/// **Atention** This implementation only supports curves of prime order.
-#[derive(Clone, std::cmp::PartialEq)]
-pub struct WeierstrassCurve {
-    pub f: Fp,
-    pub a: Fp,
-    pub b: Fp,
-    pub r: BigUint,
-}
-
-impl std::fmt::Display for WeierstrassCurve {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "Weierstrass Curve y^2=x^3+ax+b\na: {}\nb: {}",
-            self.a, self.b,
-        )
-    }
-}
-impl WeierstrassCurve {
-    pub fn new_point(&self, x: Fp, y: Fp, z: Fp) -> WeierstrassProjectivePoint {
-        let e = self.clone();
-        let p = WeierstrassProjectivePoint { e, x, y, z };
-        do_if_eq!(self.is_on_curve(&p), true, p, ERR_ECC_NEW)
-    }
-    pub fn new_scalar(&self, k: BigInt) -> Scalar {
-        let r = self.r.to_bigint().unwrap();
-        Scalar { k, r }.reduce()
-    }
-    pub fn identity(&self) -> WeierstrassProjectivePoint {
-        self.new_point(self.f.zero(), self.f.one(), self.f.zero())
-    }
-    pub fn is_on_curve(&self, p: &WeierstrassProjectivePoint) -> bool {
-        let x3 = &p.x * &p.x * &p.x;
-        let bz = &self.b * &p.z;
-        let ax = &self.a * &p.x;
-        let zz = &p.z * &(ax + &bz);
-        let zy = &p.z * &(zz - &(&p.y * &p.y));
-        let eq = x3 + &zy;
-        eq.is_zero()
-    }
-}
+use crate::field::Fp;
+use crate::weierstrass::curve::WeierstrassCurve;
+use crate::weierstrass::scalar::WeierstrassScalar;
+use crate::EllipticCurve;
+use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
-pub struct WeierstrassProjectivePoint {
-    e: WeierstrassCurve,
-    x: Fp,
-    y: Fp,
-    z: Fp,
+pub struct WeierstrassPoint {
+    pub(super) e: WeierstrassCurve,
+    pub(super) x: Fp,
+    pub(super) y: Fp,
+    pub(super) z: Fp,
 }
 
-impl std::fmt::Display for WeierstrassProjectivePoint {
+impl std::fmt::Display for WeierstrassPoint {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "\nx: {}\ny: {}\nz: {}", self.x, self.y, self.z)
     }
 }
 
-impl WeierstrassProjectivePoint {
+impl WeierstrassPoint {
     pub fn normalize(&mut self) {
         let inv_z = 1u32 / &self.z;
         self.x = &self.x * &inv_z;
@@ -79,13 +39,13 @@ impl WeierstrassProjectivePoint {
     pub fn is_identity(&self) -> bool {
         self.x.is_zero() && !self.y.is_zero() && self.z.is_zero()
     }
-    fn core_neg(&self) -> WeierstrassProjectivePoint {
+    fn core_neg(&self) -> WeierstrassPoint {
         self.e.new_point(self.x.clone(), -&self.y, self.z.clone())
     }
     /// core_add implements complete addition formulas for prime order groups.
     // Reference: "Complete addition formulas for prime order elliptic curves" by
     // Costello-Renes-Batina. [Alg.1] (eprint.iacr.org/2015/1060).
-    fn core_add(&self, q: &WeierstrassProjectivePoint) -> WeierstrassProjectivePoint {
+    fn core_add(&self, q: &WeierstrassPoint) -> WeierstrassPoint {
         let a = &self.e.a;
         let b3 = &self.e.b + &self.e.b + &self.e.b;
         let (x1, x2) = (&self.x, &q.x);
@@ -135,11 +95,11 @@ impl WeierstrassProjectivePoint {
         z3 = z3 + t0; //   40. Z3 = Z3 + t0
         self.e.new_point(x3, y3, z3)
     }
-    /// core_mul implements the double&add scalar multiplication method.
+    /// core_mul implements the double&add WeierstrassScalar multiplication method.
     /// This function run in non-constant time.
-    fn core_mul(&self, k: &Scalar) -> WeierstrassProjectivePoint {
+    fn core_mul(&self, k: &WeierstrassScalar) -> WeierstrassPoint {
         let mut q = self.e.identity();
-        for ki in k.reduce().iter_lr() {
+        for ki in k.iter_lr() {
             q = &q + &q;
             if ki {
                 q = q + self;
@@ -149,7 +109,7 @@ impl WeierstrassProjectivePoint {
     }
 }
 
-impl PartialEq for WeierstrassProjectivePoint {
+impl PartialEq for WeierstrassPoint {
     fn eq(&self, other: &Self) -> bool {
         let x1z2 = &self.x * &other.z;
         let z1x2 = &self.z * &other.x;
@@ -159,42 +119,33 @@ impl PartialEq for WeierstrassProjectivePoint {
     }
 }
 
-impl<'a, 'b> Mul<&'b Scalar> for &'a WeierstrassProjectivePoint {
-    type Output = WeierstrassProjectivePoint;
+impl<'a, 'b> Mul<&'b WeierstrassScalar> for &'a WeierstrassPoint {
+    type Output = WeierstrassPoint;
     #[inline]
-    fn mul(self, other: &Scalar) -> Self::Output {
-        let r = other.r.to_biguint().unwrap();
-        do_if_eq!(self.e.r, r, self.core_mul(&other), ERR_MUL_OP)
+    fn mul(self, other: &WeierstrassScalar) -> Self::Output {
+        let r = self.e.r.to_bigint().unwrap();
+        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
-impl<'a> Mul<&'a Scalar> for WeierstrassProjectivePoint {
-    type Output = WeierstrassProjectivePoint;
+impl<'a> Mul<&'a WeierstrassScalar> for WeierstrassPoint {
+    type Output = WeierstrassPoint;
     #[inline]
-    fn mul(self, other: &'a Scalar) -> Self::Output {
-        let r = other.r.to_biguint().unwrap();
-        do_if_eq!(self.e.r, r, self.core_mul(&other), ERR_MUL_OP)
+    fn mul(self, other: &'a WeierstrassScalar) -> Self::Output {
+        let r = self.e.r.to_bigint().unwrap();
+        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
-impl Mul<Scalar> for WeierstrassProjectivePoint {
-    type Output = WeierstrassProjectivePoint;
+impl Mul<WeierstrassScalar> for WeierstrassPoint {
+    type Output = WeierstrassPoint;
     #[inline]
-    fn mul(self, other: Scalar) -> Self::Output {
-        let r = other.r.to_biguint().unwrap();
-        do_if_eq!(self.e.r, r, self.core_mul(&other), ERR_MUL_OP)
+    fn mul(self, other: WeierstrassScalar) -> Self::Output {
+        let r = self.e.r.to_bigint().unwrap();
+        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
+const ERR_MUL_OP: &str = "WeierstrassScalar don't match with point";
+const ERR_ADD_OP: &str = "points of different curves";
 
-impl_binary_op!(
-    WeierstrassProjectivePoint,
-    Add,
-    add,
-    core_add,
-    e,
-    ERR_ADD_OP
-);
+impl_binary_op!(WeierstrassPoint, Add, add, core_add, e, ERR_ADD_OP);
 
-impl_unary_op!(WeierstrassProjectivePoint, Neg, neg, core_neg);
-
-const ERR_ADD_OP: &'static str = "points of different curves";
-const ERR_MUL_OP: &'static str = "scalar don't match with point";
-const ERR_ECC_NEW: &'static str = "not valid point";
+impl_unary_op!(WeierstrassPoint, Neg, neg, core_neg);

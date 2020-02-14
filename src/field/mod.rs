@@ -3,19 +3,17 @@
 //! The field module is meant to be used for bar.
 
 extern crate num_bigint;
-extern crate num_integer;
-
 use num_bigint::{BigInt, BigUint, ToBigInt};
+
+extern crate num_integer;
 use num_integer::Integer;
+
 use num_traits::identities::{One, Zero};
+
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-pub trait Field {
-    type Elt;
-    fn new(&self, _: BigInt) -> Self::Elt;
-    fn zero(&self) -> Self::Elt;
-    fn one(&self) -> Self::Elt;
-}
+use crate::Field;
+use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct Fp {
@@ -105,8 +103,8 @@ impl_binary_op!(Fp, Sub, sub, sub_mod, p, ERR_BIN_OP);
 impl_binary_op!(Fp, Mul, mul, mul_mod, p, ERR_BIN_OP);
 impl_unary_op!(Fp, Neg, neg, neg_mod);
 
-const ERR_BIN_OP: &'static str = "elements of different fields";
-const ERR_INV_OP: &'static str = "numerator must be 1u32";
+const ERR_BIN_OP: &str = "elements of different fields";
+const ERR_INV_OP: &str = "numerator must be 1u32";
 
 impl num_traits::identities::Zero for Fp {
     fn zero() -> Self {
