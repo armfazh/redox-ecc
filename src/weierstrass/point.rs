@@ -16,41 +16,44 @@ use crate::EllipticCurve;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
-pub struct Point {
-    pub(super) e: Curve,
-    pub(super) x: Fp,
-    pub(super) y: Fp,
-    pub(super) z: Fp,
+pub struct Coordinates {
+    pub x: Fp,
+    pub y: Fp,
+    pub z: Fp,
 }
 
-impl std::fmt::Display for Point {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "\nx: {}\ny: {}\nz: {}", self.x, self.y, self.z)
-    }
+#[derive(Clone)]
+pub struct Point {
+    pub(super) e: Curve,
+    pub(super) c: Coordinates,
 }
 
 impl Point {
     pub fn normalize(&mut self) {
-        let inv_z = 1u32 / &self.z;
-        self.x = &self.x * &inv_z;
-        self.y = &self.y * &inv_z;
-        self.z.set_one();
+        let inv_z = 1u32 / &self.c.z;
+        self.c.x = &self.c.x * &inv_z;
+        self.c.y = &self.c.y * &inv_z;
+        self.c.z.set_one();
     }
     pub fn is_identity(&self) -> bool {
-        self.x.is_zero() && !self.y.is_zero() && self.z.is_zero()
+        self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
     }
     fn core_neg(&self) -> Point {
-        self.e.new_point(self.x.clone(), -&self.y, self.z.clone())
+        self.e.new_point(Coordinates {
+            x: self.c.x.clone(),
+            y: -&self.c.y,
+            z: self.c.z.clone(),
+        })
     }
     /// core_add implements complete addition formulas for prime order groups.
     // Reference: "Complete addition formulas for prime order elliptic curves" by
     // Costello-Renes-Batina. [Alg.1] (eprint.iacr.org/2015/1060).
-    fn core_add(&self, q: &Point) -> Point {
+    fn core_add(&self, p: &Point) -> Point {
         let a = &self.e.a;
         let b3 = &self.e.b + &self.e.b + &self.e.b;
-        let (x1, x2) = (&self.x, &q.x);
-        let (y1, y2) = (&self.y, &q.y);
-        let (z1, z2) = (&self.z, &q.z);
+        let (x1, x2) = (&self.c.x, &p.c.x);
+        let (y1, y2) = (&self.c.y, &p.c.y);
+        let (z1, z2) = (&self.c.z, &p.c.z);
         let (mut x3, mut y3, mut z3);
         let (mut t0, mut t1, mut t2, mut t3, mut t4, mut t5);
         t0 = x1 * x2; //    1. t0 = X1 * X2
@@ -93,7 +96,12 @@ impl Point {
         t0 = t3 * &t1; //  38. t0 = t3 * t1
         z3 = t5 * z3; //   39. Z3 = t5 * Z3
         z3 = z3 + t0; //   40. Z3 = Z3 + t0
-        self.e.new_point(x3, y3, z3)
+                      // self.e.new_point(&[x3, y3, z3])
+        self.e.new_point(Coordinates {
+            x: x3,
+            y: y3,
+            z: z3,
+        })
     }
     /// core_mul implements the double&add Scalar multiplication method.
     /// This function run in non-constant time.
@@ -111,10 +119,10 @@ impl Point {
 
 impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
-        let x1z2 = &self.x * &other.z;
-        let z1x2 = &self.z * &other.x;
-        let y1z2 = &self.y * &other.z;
-        let z1y2 = &self.z * &other.y;
+        let x1z2 = &self.c.x * &other.c.z;
+        let z1x2 = &self.c.z * &other.c.x;
+        let y1z2 = &self.c.y * &other.c.z;
+        let z1y2 = &self.c.z * &other.c.y;
         self.e == other.e && x1z2 == z1x2 && y1z2 == z1y2
     }
 }
@@ -149,3 +157,9 @@ const ERR_ADD_OP: &str = "points of different curves";
 impl_binary_op!(Point, Add, add, core_add, e, ERR_ADD_OP);
 
 impl_unary_op!(Point, Neg, neg, core_neg);
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "\nx: {}\ny: {}\nz: {}", self.c.x, self.c.y, self.c.z)
+    }
+}

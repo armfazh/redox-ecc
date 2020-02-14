@@ -12,6 +12,8 @@ mod inst;
 mod macros;
 
 pub mod field;
+
+pub mod edwards;
 pub mod weierstrass;
 
 /// P256 is the NIST P-256 elliptic curve.
@@ -22,6 +24,10 @@ pub static P384: CurveID = CurveID(&inst::P384_PARAMS);
 pub static P521: CurveID = CurveID(&inst::P521_PARAMS);
 /// SECP256K1 is a 256-bit elliptic curve knwon as secp256k1.
 pub static SECP256K1: CurveID = CurveID(&inst::SECP256K1_PARAMS);
+/// EDWARDS25519 is the edwards25519 elliptic curve as specified in RFC-7748.
+pub static EDWARDS25519: CurveID = CurveID(&inst::EDWARDS25519_PARAMS);
+/// EDWARDS448 is the edwards448 elliptic curve as specified in RFC-7748.
+pub static EDWARDS448: CurveID = CurveID(&inst::EDWARDS448_PARAMS);
 
 pub struct CurveID(&'static inst::CurveParams);
 
@@ -38,7 +44,12 @@ impl CurveID {
     }
     pub fn get_generator(&self) -> weierstrass::Point {
         let e = self.get_curve();
-        e.new_point(e.f.from(self.0.gx), e.f.from(self.0.gy), e.f.one())
+        let p = weierstrass::Coordinates {
+            x: e.f.from(self.0.gx),
+            y: e.f.from(self.0.gy),
+            z: e.f.one(),
+        };
+        e.new_point(p)
     }
 }
 
@@ -52,6 +63,7 @@ pub trait FromFactory<T: Sized> {
     fn from(&self, _: T) -> Self;
 }
 
+pub type EllipticCurveModel = ();
 /// Field is a fabric to instante a finite field. The type `Elt` determines the type of its elements.
 pub trait Field {
     type Elt;
@@ -60,13 +72,16 @@ pub trait Field {
     fn one(&self) -> Self::Elt;
 }
 /// Curve trait allows to implement elliptic curve operations.
-pub trait EllipticCurve {
+pub trait EllipticCurve: PartialEq {
+    type Field;
     type Point;
+    type Coordinates;
     type Scalar;
-    fn new_point(&self, x: field::Fp, y: field::Fp, z: field::Fp) -> Self::Point;
+    fn new_point(&self, _: Self::Coordinates) -> Self::Point;
     fn new_scalar(&self, _: BigInt) -> Self::Scalar;
     fn identity(&self) -> Self::Point;
     fn is_on_curve(&self, _: &Self::Point) -> bool;
+    fn get_order(&self) -> BigUint;
 }
 
 #[cfg(test)]

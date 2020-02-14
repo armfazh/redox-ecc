@@ -5,6 +5,7 @@ use redox_ecc::field::Fp;
 use redox_ecc::version;
 use redox_ecc::weierstrass;
 use redox_ecc::EllipticCurve;
+use redox_ecc::Field;
 use redox_ecc::FromFactory;
 
 fn main() {
@@ -21,8 +22,16 @@ fn main() {
     println!("r: {} ", r);
     let curve = weierstrass::Curve { f, a, b, r };
     println!("E: {} ", curve);
-    let g0 = curve.new_point(curve.f.from(41u64), curve.f.from(13u64), curve.f.from(1u64));
-    let g1 = curve.new_point(curve.f.from(41u64), curve.f.from(13u64), curve.f.from(1u64));
+    let g0 = curve.new_point(weierstrass::Coordinates {
+        x: curve.f.from(41u64),
+        y: curve.f.from(13u64),
+        z: curve.f.one(),
+    });
+    let g1 = curve.new_point(weierstrass::Coordinates {
+        x: curve.f.from(41u64),
+        y: curve.f.from(13u64),
+        z: curve.f.one(),
+    });
     println!("g0: {} ", g0);
     println!("g1: {} ", g1);
     let g2 = g0 + g1;
@@ -42,10 +51,10 @@ fn main() {
         println!("i: {}, ki: {:?}", i, ki);
     }
 
-    use redox_ecc::P521;
-    let ec = P521.get_curve();
-    let mut gg = P521.get_generator();
-    println!("E: {} ", P521);
+    use redox_ecc::EDWARDS25519;
+    let ec = EDWARDS25519.get_curve();
+    let mut gg = EDWARDS25519.get_generator();
+    println!("E: {} ", EDWARDS25519);
     println!("E: {} ", ec);
     println!("G: {} ", gg);
     gg = &gg + &gg;

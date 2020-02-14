@@ -8,27 +8,28 @@ use num_bigint::{BigInt, BigUint};
 use num_traits::identities::Zero;
 
 use crate::do_if_eq;
+use crate::edwards::point::{Point, ProyCoordinates};
+use crate::edwards::scalar::Scalar;
 use crate::field::Fp;
-use crate::weierstrass::point::{Coordinates, Point};
-use crate::weierstrass::scalar::Scalar;
 use crate::EllipticCurve;
 use crate::Field;
 
-/// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
+/// This is an elliptic curve defined in the the twisted Edwards model and defined by the equation:
+/// ax^2+y^2=1+dx^2y^2.
 ///
-/// **Atention** This implementation only supports curves of prime order.
-#[derive(Clone, std::cmp::PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Curve {
+    // pub v: T,
     pub f: Fp,
     pub a: Fp,
-    pub b: Fp,
+    pub d: Fp,
     pub r: BigUint,
 }
 
 impl EllipticCurve for Curve {
     type Field = Fp;
     type Point = Point;
-    type Coordinates = Coordinates;
+    type Coordinates = ProyCoordinates;
     type Scalar = Scalar;
     fn new_point(&self, c: Self::Coordinates) -> Self::Point {
         let e = self.clone();
@@ -39,21 +40,27 @@ impl EllipticCurve for Curve {
         Scalar::new(k, &self.r)
     }
     fn identity(&self) -> Self::Point {
-        self.new_point(Coordinates {
-            x: self.f.zero(),
-            y: self.f.one(),
-            z: self.f.zero(),
+        let f = &self.f;
+        self.new_point(ProyCoordinates {
+            x: f.zero(),
+            y: f.one(),
+            t: f.zero(),
+            z: f.one(),
         })
     }
     fn is_on_curve(&self, p: &Self::Point) -> bool {
         let p = &p.c;
-        let x3 = &p.x * &p.x * &p.x;
-        let bz = &self.b * &p.z;
-        let ax = &self.a * &p.x;
-        let zz = &p.z * &(ax + &bz);
-        let zy = &p.z * &(zz - &(&p.y * &p.y));
-        let eq = x3 + &zy;
-        eq.is_zero()
+        let x2 = &p.x * &p.x;
+        let y2 = &p.y * &p.y;
+        let t2 = &p.t * &p.t;
+        let z2 = &p.z * &p.z;
+        let l1 = x2 * &self.a + y2;
+        let r1 = t2 * &self.d + z2;
+        let l2 = &p.x * &p.y;
+        let r2 = &p.t * &p.z;
+        let e1 = l1 - r1;
+        let e2 = l2 - r2;
+        e1.is_zero() && e2.is_zero()
     }
     fn get_order(&self) -> BigUint {
         self.r.clone()
@@ -64,8 +71,8 @@ impl std::fmt::Display for Curve {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "Weierstrass Curve y^2=x^3+ax+b\na: {}\nb: {}",
-            self.a, self.b,
+            "Twisted Edwards Curve ax^2+y^2=1+dx^2y^2\na: {}\nd: {}",
+            self.a, self.d,
         )
     }
 }
