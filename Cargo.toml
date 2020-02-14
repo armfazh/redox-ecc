@@ -4,7 +4,10 @@ version = "0.1.0"
 authors = ["Armando Faz Hernandez"]
 edition = "2018"
 description = "elliptic curve arithmetic"
-keywords = ["elliptic curve", "math"]
+keywords = ["elliptic curve", "math", "crypto", "ecc", "elliptic", "weierstrass"]
+categories = ["cryptography", "no-std"]
+readme = "README.md"
+license = "BSD-3-Clause"
 
 [[bench]]
 name = "field"

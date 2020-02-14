@@ -4,6 +4,6 @@
 mod curve;
 mod point;
 mod scalar;
-pub use crate::weierstrass::curve::WeierstrassCurve as Curve;
-pub use crate::weierstrass::point::WeierstrassPoint as Point;
-pub use crate::weierstrass::scalar::WeierstrassScalar as Scalar;
+pub use crate::weierstrass::curve::Curve;
+pub use crate::weierstrass::point::Point;
+pub use crate::weierstrass::scalar::Scalar;

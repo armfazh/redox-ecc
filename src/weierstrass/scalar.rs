@@ -10,72 +10,72 @@ use num_integer::Integer;
 
 use std::ops::{Add, Mul, Neg, Sub};
 
-use crate::weierstrass::point::WeierstrassPoint;
+use crate::weierstrass::point::Point;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
-pub struct WeierstrassScalar {
+pub struct Scalar {
     pub(super) k: BigInt,
     pub(super) r: BigInt,
 }
 
-impl WeierstrassScalar {
+impl Scalar {
     pub fn new(k: BigInt, r: &BigUint) -> Self {
         let r = r.to_bigint().unwrap();
         let k = k.mod_floor(&r);
-        WeierstrassScalar { k, r }
+        Scalar { k, r }
     }
 }
 
-impl WeierstrassScalar {
+impl Scalar {
     #[inline]
     fn red(&self, k: BigInt) -> Self {
         let k = k.mod_floor(&self.r);
         let r = self.r.clone();
-        WeierstrassScalar { k, r }
+        Scalar { k, r }
     }
     #[inline]
     fn neg_mod(&self) -> Self {
         self.red(-&self.k)
     }
     #[inline]
-    fn add_mod(&self, other: &WeierstrassScalar) -> Self {
+    fn add_mod(&self, other: &Scalar) -> Self {
         self.red(&self.k + &other.k)
     }
     #[inline]
-    fn sub_mod(&self, other: &WeierstrassScalar) -> Self {
+    fn sub_mod(&self, other: &Scalar) -> Self {
         self.red(&self.k - &other.k)
     }
     #[inline]
-    fn mul_mod(&self, other: &WeierstrassScalar) -> Self {
+    fn mul_mod(&self, other: &Scalar) -> Self {
         self.red(&self.k * &other.k)
     }
 }
 
-impl std::cmp::PartialEq for WeierstrassScalar {
+impl std::cmp::PartialEq for Scalar {
     fn eq(&self, other: &Self) -> bool {
         (self.r == other.r) && (self.k == other.k)
     }
 }
 
-impl<'a, 'b> Mul<&'b WeierstrassPoint> for &'a WeierstrassScalar {
-    type Output = WeierstrassPoint;
+impl<'a, 'b> Mul<&'b Point> for &'a Scalar {
+    type Output = Point;
     #[inline]
-    fn mul(self, other: &'b WeierstrassPoint) -> Self::Output {
+    fn mul(self, other: &'b Point) -> Self::Output {
         other * self
     }
 }
-impl<'b> Mul<&'b WeierstrassPoint> for WeierstrassScalar {
-    type Output = WeierstrassPoint;
+impl<'b> Mul<&'b Point> for Scalar {
+    type Output = Point;
     #[inline]
-    fn mul(self, other: &'b WeierstrassPoint) -> Self::Output {
+    fn mul(self, other: &'b Point) -> Self::Output {
         other * &self
     }
 }
-impl Mul<WeierstrassPoint> for WeierstrassScalar {
-    type Output = WeierstrassPoint;
+impl Mul<Point> for Scalar {
+    type Output = Point;
     #[inline]
-    fn mul(self, other: WeierstrassPoint) -> Self::Output {
+    fn mul(self, other: Point) -> Self::Output {
         other * &self
     }
 }
@@ -106,7 +106,7 @@ impl std::iter::Iterator for Iterino {
     }
 }
 
-impl WeierstrassScalar {
+impl Scalar {
     pub fn iter_lr(&self) -> impl std::iter::Iterator<Item = bool> {
         let l = self.k.bits();
         let i = l - 1usize;
@@ -125,12 +125,12 @@ impl WeierstrassScalar {
 
 const ERR_BIN_OP: &str = "elements of different groups";
 
-impl_binary_op!(WeierstrassScalar, Add, add, add_mod, r, ERR_BIN_OP);
-impl_binary_op!(WeierstrassScalar, Sub, sub, sub_mod, r, ERR_BIN_OP);
-impl_binary_op!(WeierstrassScalar, Mul, mul, mul_mod, r, ERR_BIN_OP);
-impl_unary_op!(WeierstrassScalar, Neg, neg, neg_mod);
+impl_binary_op!(Scalar, Add, add, add_mod, r, ERR_BIN_OP);
+impl_binary_op!(Scalar, Sub, sub, sub_mod, r, ERR_BIN_OP);
+impl_binary_op!(Scalar, Mul, mul, mul_mod, r, ERR_BIN_OP);
+impl_unary_op!(Scalar, Neg, neg, neg_mod);
 
-impl std::fmt::Display for WeierstrassScalar {
+impl std::fmt::Display for Scalar {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.k)
     }

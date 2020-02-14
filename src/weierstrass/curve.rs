@@ -9,8 +9,8 @@ use num_traits::identities::Zero;
 
 use crate::do_if_eq;
 use crate::field::Fp;
-use crate::weierstrass::point::WeierstrassPoint;
-use crate::weierstrass::scalar::WeierstrassScalar;
+use crate::weierstrass::point::Point;
+use crate::weierstrass::scalar::Scalar;
 use crate::EllipticCurve;
 use crate::Field;
 
@@ -18,19 +18,19 @@ use crate::Field;
 ///
 /// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
-pub struct WeierstrassCurve {
+pub struct Curve {
     pub f: Fp,
     pub a: Fp,
     pub b: Fp,
     pub r: BigUint,
 }
 
-impl EllipticCurve for WeierstrassCurve {
-    type Point = WeierstrassPoint;
-    type Scalar = WeierstrassScalar;
+impl EllipticCurve for Curve {
+    type Point = Point;
+    type Scalar = Scalar;
     fn new_point(&self, px: Fp, py: Fp, pz: Fp) -> Self::Point {
         let e = self.clone();
-        let p = WeierstrassPoint {
+        let p = Point {
             e,
             x: px,
             y: py,
@@ -39,7 +39,7 @@ impl EllipticCurve for WeierstrassCurve {
         do_if_eq!(self.is_on_curve(&p), true, p, ERR_ECC_NEW)
     }
     fn new_scalar(&self, k: BigInt) -> Self::Scalar {
-        WeierstrassScalar::new(k, &self.r)
+        Scalar::new(k, &self.r)
     }
     fn identity(&self) -> Self::Point {
         self.new_point(self.f.zero(), self.f.one(), self.f.zero())
@@ -55,7 +55,7 @@ impl EllipticCurve for WeierstrassCurve {
     }
 }
 
-impl std::fmt::Display for WeierstrassCurve {
+impl std::fmt::Display for Curve {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,

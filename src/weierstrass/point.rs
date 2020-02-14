@@ -10,26 +10,26 @@ use num_traits::identities::{One, Zero};
 use std::ops::{Add, Mul, Neg};
 
 use crate::field::Fp;
-use crate::weierstrass::curve::WeierstrassCurve;
-use crate::weierstrass::scalar::WeierstrassScalar;
+use crate::weierstrass::curve::Curve;
+use crate::weierstrass::scalar::Scalar;
 use crate::EllipticCurve;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
-pub struct WeierstrassPoint {
-    pub(super) e: WeierstrassCurve,
+pub struct Point {
+    pub(super) e: Curve,
     pub(super) x: Fp,
     pub(super) y: Fp,
     pub(super) z: Fp,
 }
 
-impl std::fmt::Display for WeierstrassPoint {
+impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "\nx: {}\ny: {}\nz: {}", self.x, self.y, self.z)
     }
 }
 
-impl WeierstrassPoint {
+impl Point {
     pub fn normalize(&mut self) {
         let inv_z = 1u32 / &self.z;
         self.x = &self.x * &inv_z;
@@ -39,13 +39,13 @@ impl WeierstrassPoint {
     pub fn is_identity(&self) -> bool {
         self.x.is_zero() && !self.y.is_zero() && self.z.is_zero()
     }
-    fn core_neg(&self) -> WeierstrassPoint {
+    fn core_neg(&self) -> Point {
         self.e.new_point(self.x.clone(), -&self.y, self.z.clone())
     }
     /// core_add implements complete addition formulas for prime order groups.
     // Reference: "Complete addition formulas for prime order elliptic curves" by
     // Costello-Renes-Batina. [Alg.1] (eprint.iacr.org/2015/1060).
-    fn core_add(&self, q: &WeierstrassPoint) -> WeierstrassPoint {
+    fn core_add(&self, q: &Point) -> Point {
         let a = &self.e.a;
         let b3 = &self.e.b + &self.e.b + &self.e.b;
         let (x1, x2) = (&self.x, &q.x);
@@ -95,9 +95,9 @@ impl WeierstrassPoint {
         z3 = z3 + t0; //   40. Z3 = Z3 + t0
         self.e.new_point(x3, y3, z3)
     }
-    /// core_mul implements the double&add WeierstrassScalar multiplication method.
+    /// core_mul implements the double&add Scalar multiplication method.
     /// This function run in non-constant time.
-    fn core_mul(&self, k: &WeierstrassScalar) -> WeierstrassPoint {
+    fn core_mul(&self, k: &Scalar) -> Point {
         let mut q = self.e.identity();
         for ki in k.iter_lr() {
             q = &q + &q;
@@ -109,7 +109,7 @@ impl WeierstrassPoint {
     }
 }
 
-impl PartialEq for WeierstrassPoint {
+impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
         let x1z2 = &self.x * &other.z;
         let z1x2 = &self.z * &other.x;
@@ -119,33 +119,33 @@ impl PartialEq for WeierstrassPoint {
     }
 }
 
-impl<'a, 'b> Mul<&'b WeierstrassScalar> for &'a WeierstrassPoint {
-    type Output = WeierstrassPoint;
+impl<'a, 'b> Mul<&'b Scalar> for &'a Point {
+    type Output = Point;
     #[inline]
-    fn mul(self, other: &WeierstrassScalar) -> Self::Output {
+    fn mul(self, other: &Scalar) -> Self::Output {
         let r = self.e.r.to_bigint().unwrap();
         do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
-impl<'a> Mul<&'a WeierstrassScalar> for WeierstrassPoint {
-    type Output = WeierstrassPoint;
+impl<'a> Mul<&'a Scalar> for Point {
+    type Output = Point;
     #[inline]
-    fn mul(self, other: &'a WeierstrassScalar) -> Self::Output {
+    fn mul(self, other: &'a Scalar) -> Self::Output {
         let r = self.e.r.to_bigint().unwrap();
         do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
-impl Mul<WeierstrassScalar> for WeierstrassPoint {
-    type Output = WeierstrassPoint;
+impl Mul<Scalar> for Point {
+    type Output = Point;
     #[inline]
-    fn mul(self, other: WeierstrassScalar) -> Self::Output {
+    fn mul(self, other: Scalar) -> Self::Output {
         let r = self.e.r.to_bigint().unwrap();
         do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
-const ERR_MUL_OP: &str = "WeierstrassScalar don't match with point";
+const ERR_MUL_OP: &str = "Scalar don't match with point";
 const ERR_ADD_OP: &str = "points of different curves";
 
-impl_binary_op!(WeierstrassPoint, Add, add, core_add, e, ERR_ADD_OP);
+impl_binary_op!(Point, Add, add, core_add, e, ERR_ADD_OP);
 
-impl_unary_op!(WeierstrassPoint, Neg, neg, core_neg);
+impl_unary_op!(Point, Neg, neg, core_neg);
