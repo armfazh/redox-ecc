@@ -7,22 +7,25 @@ use num_bigint::{BigInt, BigUint};
 
 use num_traits::identities::Zero;
 
-use crate::do_if_eq;
+use std::str::FromStr;
+
 use crate::field::Fp;
 use crate::weierstrass::point::{Coordinates, Point};
 use crate::weierstrass::scalar::Scalar;
+use crate::weierstrass::CurveID;
 use crate::EllipticCurve;
 use crate::Field;
+use crate::{do_if_eq, FromFactory};
 
 /// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
 ///
 /// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct Curve {
-    pub f: Fp,
-    pub a: Fp,
-    pub b: Fp,
-    pub r: BigUint,
+    f: Fp,
+    pub(super) a: Fp,
+    pub(super) b: Fp,
+    pub(super) r: BigUint,
 }
 
 impl EllipticCurve for Curve {
@@ -57,6 +60,17 @@ impl EllipticCurve for Curve {
     }
     fn get_order(&self) -> BigUint {
         self.r.clone()
+    }
+}
+
+impl std::convert::From<&CurveID> for Curve {
+    fn from(id: &CurveID) -> Curve {
+        let params = id.0;
+        let f = <Fp as From<BigUint>>::from(BigUint::from_str(params.p).unwrap());
+        let a = f.from(params.a);
+        let b = f.from(params.b);
+        let r = BigUint::from_str(params.r).unwrap();
+        Curve { f, a, b, r }
     }
 }
 

@@ -1,17 +1,17 @@
 extern crate num_bigint;
 
-use num_bigint::{BigInt, BigUint};
-use redox_ecc::field::Fp;
+// use num_bigint::{BigInt, BigUint};
+
+use redox_ecc::edwards;
+use redox_ecc::edwards::EDWARDS448;
 use redox_ecc::version;
 use redox_ecc::weierstrass;
-use redox_ecc::EllipticCurve;
-use redox_ecc::Field;
-use redox_ecc::FromFactory;
+use redox_ecc::weierstrass::P256;
 
 fn main() {
     println!("{}", version());
     println!("Example!");
-
+    /*
     let f = Fp::create(BigUint::from(53u64));
     let a = f.from(-3);
     let b = f.from(6);
@@ -50,14 +50,17 @@ fn main() {
     for (i, ki) in uno.iter_rl().enumerate() {
         println!("i: {}, ki: {:?}", i, ki);
     }
+    */
 
-    use redox_ecc::EDWARDS25519;
-    let ec = EDWARDS25519.get_curve();
-    let mut gg = EDWARDS25519.get_generator();
-    println!("E: {} ", EDWARDS25519);
+    let ec = weierstrass::Curve::from(P256);
+    println!("E: {} ", P256);
     println!("E: {} ", ec);
-    println!("G: {} ", gg);
-    gg = &gg + &gg;
-    gg.normalize();
-    println!("G: {} ", gg);
+    let ec = edwards::Curve::from(EDWARDS448);
+    println!("E: {} ", EDWARDS448);
+    println!("E: {} ", ec);
+    // let mut gg = ec.get_generator();
+    // println!("G: {} ", gg);
+    // gg = &gg + &gg;
+    // gg.normalize();
+    // println!("G: {} ", gg);
 }

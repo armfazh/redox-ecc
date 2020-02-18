@@ -21,14 +21,6 @@ pub struct Fp {
     p: BigInt,
 }
 
-impl Fp {
-    pub fn create(p: BigUint) -> Fp {
-        // TODO: verify whether p is prime.
-        let n = BigInt::zero();
-        let p = p.to_bigint().unwrap();
-        Fp { n, p }
-    }
-}
 impl Field for Fp {
     type Elt = Fp;
     fn new(&self, n: BigInt) -> Self::Elt {
@@ -41,6 +33,15 @@ impl Field for Fp {
     }
     fn one(&self) -> Self::Elt {
         self.new(BigInt::one())
+    }
+}
+
+impl std::convert::From<BigUint> for Fp {
+    fn from(p: BigUint) -> Fp {
+        // TODO: verify whether p is prime.
+        let n = BigInt::zero();
+        let p = p.to_bigint().unwrap();
+        Fp { n, p }
     }
 }
 
