@@ -5,7 +5,6 @@ mod curve;
 mod point;
 mod scalar;
 
-// include!("point.in");
 pub use crate::edwards::curve::Curve;
 pub use crate::edwards::point::{Point, ProyCoordinates};
 pub use crate::edwards::scalar::Scalar;

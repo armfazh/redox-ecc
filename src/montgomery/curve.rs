@@ -9,22 +9,23 @@ use num_traits::identities::Zero;
 
 use std::str::FromStr;
 
-use crate::edwards::point::{Point, ProyCoordinates};
-use crate::edwards::scalar::Scalar;
-use crate::edwards::CurveID;
 use crate::field::Fp;
+use crate::montgomery::point::{Point, ProyCoordinates};
+use crate::montgomery::scalar::Scalar;
+use crate::montgomery::CurveID;
 use crate::EllipticCurve;
 use crate::Field;
 use crate::{do_if_eq, FromFactory};
 
-/// This is an elliptic curve defined in the twisted Edwards model and defined by the equation:
-/// ax^2+y^2=1+dx^2y^2.
+/// This is an elliptic curve defined in Montgomery from and defined by the equation:
+/// by^2=x^3+ax^2+x.
 ///
 #[derive(Clone, PartialEq)]
 pub struct Curve {
     f: Fp,
     pub(super) a: Fp,
-    pub(super) d: Fp,
+    pub(super) b: Fp,
+    pub(super) s: Fp,
     pub(super) r: BigUint,
 }
 
@@ -46,23 +47,15 @@ impl EllipticCurve for Curve {
         self.new_point(ProyCoordinates {
             x: f.zero(),
             y: f.one(),
-            t: f.zero(),
-            z: f.one(),
+            z: f.zero(),
         })
     }
     fn is_on_curve(&self, p: &Self::Point) -> bool {
         let p = &p.c;
-        let x2 = &p.x * &p.x;
-        let y2 = &p.y * &p.y;
-        let t2 = &p.t * &p.t;
-        let z2 = &p.z * &p.z;
-        let l1 = x2 * &self.a + y2;
-        let r1 = t2 * &self.d + z2;
-        let l2 = &p.x * &p.y;
-        let r2 = &p.t * &p.z;
-        let e1 = l1 - r1;
-        let e2 = l2 - r2;
-        e1.is_zero() && e2.is_zero()
+        let l = &self.b * &p.y * &p.y * &p.z;
+        let r = &p.x * &(&p.x * &(&p.x + &(&self.a * &p.z)) + &p.z * &p.z);
+        let e = l - r;
+        e.is_zero()
     }
     fn get_order(&self) -> BigUint {
         self.r.clone()
@@ -74,9 +67,10 @@ impl std::convert::From<&CurveID> for Curve {
         let params = id.0;
         let f = <Fp as From<BigUint>>::from(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
-        let d = f.from(params.d);
+        let b = f.from(params.b);
+        let s = f.from(params.s);
         let r = BigUint::from_str(params.r).unwrap();
-        Curve { f, a, d, r }
+        Curve { f, a, b, s, r }
     }
 }
 
@@ -84,8 +78,8 @@ impl std::fmt::Display for Curve {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "Twisted Edwards Curve ax^2+y^2=1+dx^2y^2\na: {}\nd: {}",
-            self.a, self.d,
+            "Montgomery Curve by^2=x^3+ax^2+x\na: {}\nb: {}",
+            self.a, self.b,
         )
     }
 }

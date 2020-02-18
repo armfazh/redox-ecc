@@ -12,6 +12,7 @@ mod macros;
 pub mod field;
 
 pub mod edwards;
+pub mod montgomery;
 pub mod weierstrass;
 
 // impl CurveID {
