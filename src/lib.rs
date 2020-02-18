@@ -15,24 +15,10 @@ pub mod edwards;
 pub mod montgomery;
 pub mod weierstrass;
 
-// impl CurveID {
-//     pub fn get_generator(&self) -> weierstrass::Point {
-//         let e = self.get_curve();
-//         let p = weierstrass::Coordinates {
-//             x: e.f.from(self.0.gx),
-//             y: e.f.from(self.0.gy),
-//             z: e.f.one(),
-//         };
-//         e.new_point(p)
-//     }
-// }
-//
-
 pub trait FromFactory<T: Sized> {
     fn from(&self, _: T) -> Self;
 }
 
-pub type EllipticCurveModel = ();
 /// Field is a fabric to instante a finite field. The type `Elt` determines the type of its elements.
 pub trait Field {
     type Elt;
@@ -49,8 +35,10 @@ pub trait EllipticCurve: PartialEq {
     fn new_point(&self, _: Self::Coordinates) -> Self::Point;
     fn new_scalar(&self, _: BigInt) -> Self::Scalar;
     fn identity(&self) -> Self::Point;
+    fn get_generator(&self) -> Self::Point;
     fn is_on_curve(&self, _: &Self::Point) -> bool;
     fn get_order(&self) -> BigUint;
+    fn get_field(&self) -> Self::Field;
 }
 
 #[cfg(test)]

@@ -4,9 +4,12 @@ extern crate num_bigint;
 
 use redox_ecc::edwards;
 use redox_ecc::edwards::EDWARDS448;
+use redox_ecc::montgomery;
+use redox_ecc::montgomery::CURVE25519;
 use redox_ecc::version;
 use redox_ecc::weierstrass;
 use redox_ecc::weierstrass::P256;
+use redox_ecc::EllipticCurve;
 
 fn main() {
     println!("{}", version());
@@ -58,9 +61,12 @@ fn main() {
     let ec = edwards::Curve::from(EDWARDS448);
     println!("E: {} ", EDWARDS448);
     println!("E: {} ", ec);
-    // let mut gg = ec.get_generator();
-    // println!("G: {} ", gg);
-    // gg = &gg + &gg;
-    // gg.normalize();
-    // println!("G: {} ", gg);
+    let ec = montgomery::Curve::from(CURVE25519);
+    println!("E: {} ", CURVE25519);
+    println!("E: {} ", ec);
+    let mut gg = ec.get_generator();
+    println!("G: {} ", gg);
+    gg = &gg + &gg;
+    gg.normalize();
+    println!("G: {} ", gg);
 }

@@ -26,6 +26,9 @@ pub struct Curve {
     pub(super) a: Fp,
     pub(super) b: Fp,
     pub(super) r: BigUint,
+    gx: Fp,
+    gy: Fp,
+    h: BigUint,
 }
 
 impl EllipticCurve for Curve {
@@ -61,6 +64,16 @@ impl EllipticCurve for Curve {
     fn get_order(&self) -> BigUint {
         self.r.clone()
     }
+    fn get_field(&self) -> Self::Field {
+        self.f.clone()
+    }
+    fn get_generator(&self) -> Self::Point {
+        self.new_point(Coordinates {
+            x: self.gx.clone(),
+            y: self.gy.clone(),
+            z: self.f.one(),
+        })
+    }
 }
 
 impl std::convert::From<&CurveID> for Curve {
@@ -69,8 +82,19 @@ impl std::convert::From<&CurveID> for Curve {
         let f = <Fp as From<BigUint>>::from(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
         let b = f.from(params.b);
+        let gx = f.from(params.gx);
+        let gy = f.from(params.gy);
         let r = BigUint::from_str(params.r).unwrap();
-        Curve { f, a, b, r }
+        let h = BigUint::from_str(params.h).unwrap();
+        Curve {
+            f,
+            a,
+            b,
+            r,
+            h,
+            gx,
+            gy,
+        }
     }
 }
 
