@@ -16,7 +16,7 @@ use crate::EllipticCurve;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
-pub struct Coordinates {
+pub struct ProyCoordinates {
     pub x: FpElt,
     pub y: FpElt,
     pub z: FpElt,
@@ -25,7 +25,7 @@ pub struct Coordinates {
 #[derive(Clone)]
 pub struct Point {
     pub(super) e: Curve,
-    pub(super) c: Coordinates,
+    pub(super) c: ProyCoordinates,
 }
 
 impl Point {
@@ -39,7 +39,7 @@ impl Point {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
     }
     fn core_neg(&self) -> Point {
-        self.e.new_point(Coordinates {
+        self.e.new_point(ProyCoordinates {
             x: self.c.x.clone(),
             y: -&self.c.y,
             z: self.c.z.clone(),
@@ -97,7 +97,7 @@ impl Point {
         z3 = t5 * z3; //   39. Z3 = t5 * Z3
         z3 = z3 + t0; //   40. Z3 = Z3 + t0
                       // self.e.new_point(&[x3, y3, z3])
-        self.e.new_point(Coordinates {
+        self.e.new_point(ProyCoordinates {
             x: x3,
             y: y3,
             z: z3,
@@ -155,7 +155,6 @@ const ERR_MUL_OP: &str = "Scalar don't match with point";
 const ERR_ADD_OP: &str = "points of different curves";
 
 impl_binary_op!(Point, Add, add, core_add, e, ERR_ADD_OP);
-
 impl_unary_op!(Point, Neg, neg, core_neg);
 
 impl std::fmt::Display for Point {

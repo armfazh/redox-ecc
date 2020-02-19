@@ -2,14 +2,16 @@ extern crate num_bigint;
 
 // use num_bigint::{BigInt, BigUint};
 
-use redox_ecc::edwards;
-use redox_ecc::edwards::EDWARDS448;
-use redox_ecc::montgomery;
-use redox_ecc::montgomery::CURVE25519;
+// use redox_ecc::edwards;
+// use redox_ecc::edwards::EDWARDS448;
+// use redox_ecc::montgomery;
+// use redox_ecc::montgomery::CURVE25519;
 use redox_ecc::version;
 use redox_ecc::weierstrass;
+use redox_ecc::weierstrass::ProyCoordinates;
 use redox_ecc::weierstrass::P256;
 use redox_ecc::EllipticCurve;
+use redox_ecc::FromFactory;
 
 fn main() {
     println!("{}", version());
@@ -56,16 +58,23 @@ fn main() {
     */
 
     let ec = weierstrass::Curve::from(P256);
-    println!("E: {} ", P256);
-    println!("E: {} ", ec);
-    let ec = edwards::Curve::from(EDWARDS448);
-    println!("E: {} ", EDWARDS448);
-    println!("E: {} ", ec);
-    let ec = montgomery::Curve::from(CURVE25519);
-    println!("E: {} ", CURVE25519);
+    println!("N: {} ", P256);
     println!("E: {} ", ec);
     let mut gg = ec.get_generator();
+    let f = ec.get_field();
+    let g2 = ec.new_point(ProyCoordinates {
+        x: f.from("51317554015454129980312020699350903676485190487572340293004311540924363220810"),
+        y: f.from("40717246725065776267553779947826866259129181902823445522925495338883756281207"),
+        z: f.from(1),
+    });
+    // let ec = edwards::Curve::from(EDWARDS448);
+    // println!("E: {} ", EDWARDS448);
+    // println!("E: {} ", ec);
+    // let ec = montgomery::Curve::from(CURVE25519);
+    // println!("E: {} ", CURVE25519);
+    // println!("E: {} ", ec);
     println!("G: {} ", gg);
+    println!("P: {} ", g2);
     gg = &gg + &gg;
     gg.normalize();
     println!("G: {} ", gg);

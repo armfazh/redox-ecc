@@ -10,7 +10,7 @@ use num_traits::identities::Zero;
 use std::str::FromStr;
 
 use crate::field::{FpElt, PrimeField};
-use crate::weierstrass::point::{Coordinates, Point};
+use crate::weierstrass::point::{Point, ProyCoordinates};
 use crate::weierstrass::scalar::Scalar;
 use crate::weierstrass::CurveID;
 use crate::EllipticCurve;
@@ -34,7 +34,7 @@ pub struct Curve {
 impl EllipticCurve for Curve {
     type Field = PrimeField;
     type Point = Point;
-    type Coordinates = Coordinates;
+    type Coordinates = ProyCoordinates;
     type Scalar = Scalar;
     fn new_point(&self, c: Self::Coordinates) -> Self::Point {
         let e = self.clone();
@@ -45,7 +45,7 @@ impl EllipticCurve for Curve {
         Scalar::new(k, &self.r)
     }
     fn identity(&self) -> Self::Point {
-        self.new_point(Coordinates {
+        self.new_point(ProyCoordinates {
             x: self.f.zero(),
             y: self.f.one(),
             z: self.f.zero(),
@@ -68,7 +68,7 @@ impl EllipticCurve for Curve {
         self.f.clone()
     }
     fn get_generator(&self) -> Self::Point {
-        self.new_point(Coordinates {
+        self.new_point(ProyCoordinates {
             x: self.gx.clone(),
             y: self.gy.clone(),
             z: self.f.one(),
