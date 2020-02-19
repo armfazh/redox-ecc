@@ -16,7 +16,8 @@ pub mod montgomery;
 pub mod weierstrass;
 
 pub trait FromFactory<T: Sized> {
-    fn from(&self, _: T) -> Self;
+    type Output;
+    fn from(&self, _: T) -> Self::Output;
 }
 
 /// Field is a fabric to instante a finite field. The type `Elt` determines the type of its elements.

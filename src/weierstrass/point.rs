@@ -9,7 +9,7 @@ use num_traits::identities::{One, Zero};
 
 use std::ops::{Add, Mul, Neg};
 
-use crate::field::Fp;
+use crate::field::FpElt;
 use crate::weierstrass::curve::Curve;
 use crate::weierstrass::scalar::Scalar;
 use crate::EllipticCurve;
@@ -17,9 +17,9 @@ use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
 pub struct Coordinates {
-    pub x: Fp,
-    pub y: Fp,
-    pub z: Fp,
+    pub x: FpElt,
+    pub y: FpElt,
+    pub z: FpElt,
 }
 
 #[derive(Clone)]

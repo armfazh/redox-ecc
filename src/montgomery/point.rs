@@ -7,16 +7,16 @@ use std::ops::{Add, Mul, Neg};
 
 use crate::EllipticCurve;
 
-use crate::field::Fp;
+use crate::field::FpElt;
 use crate::montgomery::curve::Curve;
 use crate::montgomery::scalar::Scalar;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
-    pub x: Fp,
-    pub y: Fp,
-    pub z: Fp,
+    pub x: FpElt,
+    pub y: FpElt,
+    pub z: FpElt,
 }
 #[derive(Clone)]
 pub struct Point {

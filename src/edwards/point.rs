@@ -9,15 +9,15 @@ use crate::EllipticCurve;
 
 use crate::edwards::curve::Curve;
 use crate::edwards::scalar::Scalar;
-use crate::field::Fp;
+use crate::field::FpElt;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
-    pub x: Fp,
-    pub y: Fp,
-    pub t: Fp,
-    pub z: Fp,
+    pub x: FpElt,
+    pub y: FpElt,
+    pub t: FpElt,
+    pub z: FpElt,
 }
 #[derive(Clone)]
 pub struct Point {

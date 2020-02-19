@@ -12,7 +12,7 @@ fn arith(c: &mut Criterion) {
         let ec = weierstrass::Curve::from(*id);
         let mut g0 = ec.get_generator();
         let mut g1 = g0.clone();
-        let k = ec.new_scalar(BigInt::from(-1i32));
+        let k = ec.new_scalar(BigInt::from(-1));
         c.bench(
             format!("{}/ec", id).as_str(),
             Benchmark::new("add", move |b| b.iter(|| g0 = &g0 + &g0))

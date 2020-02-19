@@ -12,7 +12,7 @@ use std::str::FromStr;
 use crate::edwards::point::{Point, ProyCoordinates};
 use crate::edwards::scalar::Scalar;
 use crate::edwards::CurveID;
-use crate::field::Fp;
+use crate::field::{FpElt, PrimeField};
 use crate::EllipticCurve;
 use crate::Field;
 use crate::{do_if_eq, FromFactory};
@@ -22,17 +22,17 @@ use crate::{do_if_eq, FromFactory};
 ///
 #[derive(Clone, PartialEq)]
 pub struct Curve {
-    f: Fp,
-    pub(super) a: Fp,
-    pub(super) d: Fp,
+    f: PrimeField,
+    pub(super) a: FpElt,
+    pub(super) d: FpElt,
     pub(super) r: BigUint,
-    gx: Fp,
-    gy: Fp,
+    gx: FpElt,
+    gy: FpElt,
     h: BigUint,
 }
 
 impl EllipticCurve for Curve {
-    type Field = Fp;
+    type Field = PrimeField;
     type Point = Point;
     type Coordinates = ProyCoordinates;
     type Scalar = Scalar;
@@ -86,7 +86,7 @@ impl EllipticCurve for Curve {
 impl std::convert::From<&CurveID> for Curve {
     fn from(id: &CurveID) -> Curve {
         let params = id.0;
-        let f = <Fp as From<BigUint>>::from(BigUint::from_str(params.p).unwrap());
+        let f = PrimeField::create(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
         let d = f.from(params.d);
         let gx = f.from(params.gx);

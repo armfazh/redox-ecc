@@ -9,7 +9,7 @@ use num_traits::identities::Zero;
 
 use std::str::FromStr;
 
-use crate::field::Fp;
+use crate::field::{FpElt, PrimeField};
 use crate::weierstrass::point::{Coordinates, Point};
 use crate::weierstrass::scalar::Scalar;
 use crate::weierstrass::CurveID;
@@ -22,17 +22,17 @@ use crate::{do_if_eq, FromFactory};
 /// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct Curve {
-    f: Fp,
-    pub(super) a: Fp,
-    pub(super) b: Fp,
+    f: PrimeField,
+    pub(super) a: FpElt,
+    pub(super) b: FpElt,
     pub(super) r: BigUint,
-    gx: Fp,
-    gy: Fp,
+    gx: FpElt,
+    gy: FpElt,
     h: BigUint,
 }
 
 impl EllipticCurve for Curve {
-    type Field = Fp;
+    type Field = PrimeField;
     type Point = Point;
     type Coordinates = Coordinates;
     type Scalar = Scalar;
@@ -79,7 +79,7 @@ impl EllipticCurve for Curve {
 impl std::convert::From<&CurveID> for Curve {
     fn from(id: &CurveID) -> Curve {
         let params = id.0;
-        let f = <Fp as From<BigUint>>::from(BigUint::from_str(params.p).unwrap());
+        let f = PrimeField::create(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
         let b = f.from(params.b);
         let gx = f.from(params.gx);
