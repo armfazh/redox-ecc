@@ -27,6 +27,7 @@ pub trait Field {
     fn zero(&self) -> Self::Elt;
     fn one(&self) -> Self::Elt;
 }
+
 /// Curve trait allows to implement elliptic curve operations.
 pub trait EllipticCurve: PartialEq {
     type Field;

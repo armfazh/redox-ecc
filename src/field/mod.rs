@@ -2,45 +2,59 @@
 //!
 //! The field module is meant to be used for bar.
 
-extern crate num_bigint;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 
-extern crate num_integer;
 use num_integer::Integer;
-
+use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
 
+use std::cell::RefCell;
+use std::ops::BitXor;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::rc::Rc;
 
 use crate::Field;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
-#[derive(Clone, std::cmp::PartialEq)]
-pub struct PrimeField {
-    p: Rc<BigInt>,
+struct Params {
+    p: BigInt,
+    sqrt_precmp: RefCell<SqrtPrecmp>,
 }
+
+impl PartialEq for Params {
+    fn eq(&self, other: &Self) -> bool {
+        self.p == other.p
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct PrimeField(Rc<Params>);
 
 impl PrimeField {
     pub fn create(p: BigUint) -> Self {
         // TODO: verify whether p is prime.
-        let p = Rc::new(p.to_bigint().unwrap());
-        PrimeField { p }
+        let p = p.to_bigint().unwrap();
+        let f = PrimeField(Rc::new(Params {
+            p: p.clone(),
+            sqrt_precmp: RefCell::new(SqrtPrecmp::Empty),
+        }));
+        f.0.sqrt_precmp.replace(SqrtPrecmp::new(&f));
+        f
     }
 }
 
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct FpElt {
     n: BigInt,
-    p: Rc<BigInt>,
+    f: Rc<Params>,
 }
 
 impl Field for PrimeField {
     type Elt = FpElt;
     fn new(&self, n: BigInt) -> Self::Elt {
-        let n = n.mod_floor(&self.p);
-        let p = self.p.clone();
-        FpElt { n, p }
+        let n = n.mod_floor(&self.0.p);
+        let f = self.0.clone();
+        FpElt { n, f }
     }
     fn zero(&self) -> Self::Elt {
         self.new(BigInt::zero())
@@ -76,9 +90,9 @@ impl crate::FromFactory<&str> for PrimeField {
 impl FpElt {
     #[inline]
     fn red(&self, n: BigInt) -> FpElt {
-        let n = n.mod_floor(&self.p);
-        let p = self.p.clone();
-        FpElt { n, p }
+        let n = n.mod_floor(&self.f.p);
+        let f = self.f.clone();
+        FpElt { n, f }
     }
     #[inline]
     fn neg_mod(&self) -> FpElt {
@@ -98,8 +112,25 @@ impl FpElt {
     }
     #[inline]
     fn inv_mod(&self) -> FpElt {
-        let p_minus_2 = &*self.p - 2u32;
-        self.red(self.n.modpow(&p_minus_2, &self.p))
+        let p_minus_2 = &self.f.p.to_biguint().unwrap() - 2u32;
+        self ^ &p_minus_2
+    }
+}
+
+impl FpElt {
+    #[inline]
+    pub fn cmov(x: &FpElt, y: &FpElt, b: bool) -> FpElt {
+        if b {
+            y.clone()
+        } else {
+            x.clone()
+        }
+    }
+    #[inline]
+    pub fn is_square(&self) -> bool {
+        let p_minus_1_div_2 = (&self.f.p - 1) >> 1usize;
+        let res: FpElt = self ^ &p_minus_1_div_2;
+        res.is_one() || res.is_zero()
     }
 }
 
@@ -111,13 +142,108 @@ impl<'a> Div<&'a FpElt> for u32 {
     }
 }
 
-impl_binary_op!(FpElt, Add, add, add_mod, p, ERR_BIN_OP);
-impl_binary_op!(FpElt, Sub, sub, sub_mod, p, ERR_BIN_OP);
-impl_binary_op!(FpElt, Mul, mul, mul_mod, p, ERR_BIN_OP);
+impl<'a> BitXor<u32> for &'a FpElt {
+    type Output = FpElt;
+    #[inline]
+    fn bitxor(self, exp: u32) -> Self::Output {
+        do_if_eq!(exp, 2u32, self * self, ERR_EXP_SQR_OP)
+    }
+}
+
+impl<'a> BitXor<i32> for &'a FpElt {
+    type Output = FpElt;
+    #[inline]
+    fn bitxor(self, exp: i32) -> Self::Output {
+        do_if_eq!(exp, -1i32, self.inv_mod(), ERR_EXP_INV_OP)
+    }
+}
+
+impl<'a, 'b> BitXor<&'b BigUint> for &'a FpElt {
+    type Output = FpElt;
+    #[inline]
+    fn bitxor(self, exp: &'b BigUint) -> Self::Output {
+        let exp = exp.to_bigint().unwrap();
+        self.red(self.n.modpow(&exp, &self.f.p))
+    }
+}
+
+impl<'a, 'b> BitXor<&'b BigInt> for &'a FpElt {
+    type Output = FpElt;
+    #[inline]
+    fn bitxor(self, exp: &'b BigInt) -> Self::Output {
+        let expo = &exp.mod_floor(&(&self.f.p - 1)).to_biguint().unwrap();
+        self ^ expo
+    }
+}
+
+impl_binary_op!(FpElt, Add, add, add_mod, f, ERR_BIN_OP);
+impl_binary_op!(FpElt, Sub, sub, sub_mod, f, ERR_BIN_OP);
+impl_binary_op!(FpElt, Mul, mul, mul_mod, f, ERR_BIN_OP);
 impl_unary_op!(FpElt, Neg, neg, neg_mod);
 
 const ERR_BIN_OP: &str = "elements of different fields";
+const ERR_EXP_SQR_OP: &str = "exponent must be 2u32";
+const ERR_EXP_INV_OP: &str = "exponent must be -1i32";
 const ERR_INV_OP: &str = "numerator must be 1u32";
+
+#[derive(Clone, std::cmp::PartialEq)]
+enum SqrtPrecmp {
+    Empty,
+    P3MOD4 { exp: BigInt },
+    P5MOD8 { exp: BigInt, sqrt_minus_one: FpElt },
+    P9MOD16,
+    P1MOD16,
+}
+
+impl SqrtPrecmp {
+    fn new(f: &PrimeField) -> SqrtPrecmp {
+        let p = &f.0.p;
+        let res = (p % 16u32).to_u32().unwrap();
+        if 3u32 == (res % 4u32) {
+            let exp = (p + 1u32) >> 2usize;
+            SqrtPrecmp::P3MOD4 { exp }
+        } else if 5u32 == (res % 8u32) {
+            let k = (p - 5u32) >> 3usize;
+            let t = &(f.one() + f.one()) ^ &k; // t = 2^k
+            let mut t0 = &t ^ 2u32; //  t^2
+            t0 = &t0 + &t0; //          2t^2
+            t0 = t0 + f.one(); //       2t^2+1
+            t0 = t0 * t; //             t(2t^2+1)
+            let exp = k + 1;
+            let sqrt_minus_one = t0;
+            SqrtPrecmp::P5MOD8 {
+                exp,
+                sqrt_minus_one,
+            }
+        } else if 9u32 == (res % 16u32) {
+            SqrtPrecmp::P9MOD16 {}
+        } else {
+            SqrtPrecmp::P1MOD16 {}
+        }
+    }
+}
+impl FpElt {
+    #[inline]
+    pub fn sqrt(&self) -> FpElt {
+        let pre = &self.f.sqrt_precmp;
+        match &*pre.borrow() {
+            SqrtPrecmp::P3MOD4 { exp } => self ^ exp,
+            SqrtPrecmp::P5MOD8 {
+                exp,
+                sqrt_minus_one,
+            } => {
+                let t0 = self ^ exp;
+                let t1 = &t0 ^ 2u32;
+                let e = *self == t1;
+                let t1 = &t0 * sqrt_minus_one;
+                FpElt::cmov(&t1, &t0, e)
+            }
+            SqrtPrecmp::P9MOD16 => unimplemented!(),
+            SqrtPrecmp::P1MOD16 => unimplemented!(),
+            SqrtPrecmp::Empty => unimplemented!(),
+        }
+    }
+}
 
 impl num_traits::identities::Zero for FpElt {
     fn zero() -> Self {
@@ -145,7 +271,7 @@ impl num_traits::identities::One for FpElt {
 
 impl std::fmt::Display for FpElt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let x = self.n.mod_floor(&self.p);
+        let x = self.n.mod_floor(&self.f.p);
         write!(f, "{}", x)
     }
 }

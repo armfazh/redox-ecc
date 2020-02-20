@@ -9,8 +9,9 @@ fn arith(c: &mut Criterion) {
     for id in [P256, P384, P521].iter() {
         let ec = weierstrass::Curve::from(*id);
         let f = ec.get_field();
-        let mut x0 = f.from(15i64);
-        let mut x1 = f.from(15i64);
+        let mut x0 = f.from(-1i64);
+        let mut x1 = f.from(-1i64);
+        let mut x2 = f.from(-1i64);
         let y0 = f.from(15i64);
         let y1 = f.from(15i64);
 
@@ -18,6 +19,7 @@ fn arith(c: &mut Criterion) {
             format!("{}/fp", id).as_str(),
             Benchmark::new("add", move |b| b.iter(|| x0 = &x0 + &y0))
                 .with_function("mul", move |b| b.iter(|| x1 = &x1 * &y1))
+                .with_function("inv", move |b| b.iter(|| x2 = 1u32 / &x2))
                 .sample_size(10),
         );
     }

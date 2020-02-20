@@ -55,10 +55,10 @@ impl EllipticCurve for Curve {
     }
     fn is_on_curve(&self, p: &Self::Point) -> bool {
         let p = &p.c;
-        let x2 = &p.x * &p.x;
-        let y2 = &p.y * &p.y;
-        let t2 = &p.t * &p.t;
-        let z2 = &p.z * &p.z;
+        let x2 = &p.x ^ 2u32;
+        let y2 = &p.y ^ 2u32;
+        let t2 = &p.t ^ 2u32;
+        let z2 = &p.z ^ 2u32;
         let l1 = x2 * &self.a + y2;
         let r1 = t2 * &self.d + z2;
         let l2 = &p.x * &p.y;
