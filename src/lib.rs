@@ -40,12 +40,28 @@ pub trait Sqrt {
     fn sqrt(&self) -> Self;
 }
 
+#[derive(Copy, Clone)]
+pub enum Sgn0Choice {
+    Sgn0BE,
+    Sgn0LE,
+}
+
 pub trait Sgn0 {
     fn sgn0_be(&self) -> i32;
     fn sgn0_le(&self) -> i32;
+    #[inline]
+    fn sgn0(&self, s: Sgn0Choice) -> i32 {
+        match s {
+            Sgn0Choice::Sgn0BE => self.sgn0_be(),
+            Sgn0Choice::Sgn0LE => self.sgn0_le(),
+        }
+    }
 }
 
-pub trait HashToField: Field {
+pub trait HashToField
+where
+    Self: Sized,
+{
     type Output;
     fn hash<D: Digest + Copy + Sized>(
         &self,

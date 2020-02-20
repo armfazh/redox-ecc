@@ -4,9 +4,11 @@
 mod curve;
 mod point;
 mod scalar;
+mod sswu;
 pub use crate::weierstrass::curve::Curve;
 pub use crate::weierstrass::point::{Point, ProyCoordinates};
 pub use crate::weierstrass::scalar::Scalar;
+pub use crate::weierstrass::sswu::SSWU;
 
 pub struct CurveID(&'static Params);
 

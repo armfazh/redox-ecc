@@ -20,6 +20,7 @@ use redox_ecc::weierstrass::P256;
 use redox_ecc::EllipticCurve;
 use redox_ecc::FromFactory;
 use redox_ecc::HashToField;
+use redox_ecc::Sgn0Choice;
 
 fn main() {
     println!("{}", version());
@@ -78,8 +79,7 @@ fn main() {
     let a = f.hash(Sha256::new(), msg, dst, 0u8, 48usize);
     println!("a: {} ", f);
     println!("a: {} ", a);
-    let map = h2c::SSWU::new(&ec);
-    println!("map: {} ", map);
+    let map = weierstrass::SSWU::new(&ec, f.from(-10), Sgn0Choice::Sgn0BE);
     println!("map: {} ", map.map(f.from(3)));
     // let enc = h2c::Encoding {
     //     e: ec,
@@ -88,6 +88,7 @@ fn main() {
     //     mapping: map,
     //     ro: true,
     // };
+    // println!("enc: {} ", enc);
     // println!("N: {} ", P256);
     // let gg = ec.get_generator();
     // let f = ec.get_field();

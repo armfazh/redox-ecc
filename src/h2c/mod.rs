@@ -4,8 +4,9 @@ use crate::EllipticCurve;
 use crate::Field;
 use crate::HashToField;
 use crypto::digest::Digest;
+use crypto::sha2::Sha256;
 
-pub trait HashToPoint<E, H, M, D, F>
+pub trait HashToPoint<E, H, M, D>
 where
     E: EllipticCurve,
     H: HashToField<Output = <<E as EllipticCurve>::F as Field>::Elt>,
@@ -38,12 +39,38 @@ where
     }
 }
 
-// pub struct Encoding<E: EllipticCurve<Field = PrimeField>, D: Digest + Copy + Sized, M: Mapping> {
-//     e: E,
-//     hash_func: D,
-//     l: usize,
-//     mapping: M,
-//     ro: bool,
+pub struct Encoding<E, D, M>
+where
+    E: EllipticCurve,
+    D: Digest + std::marker::Copy,
+    M: Mapping<<E as EllipticCurve>::F, E>,
+{
+    e: E,
+    hash_func: D,
+    l: usize,
+    mapping: M,
+    ro: bool,
+}
+
+// impl<E, H, M, D> HashToPoint<E, H, M, D> for Encoding<E, D, M>
+// where
+//     E: EllipticCurve,
+//     H: HashToField<Output = <<E as EllipticCurve>::F as Field>::Elt>,
+//     M: Mapping<<E as EllipticCurve>::F, E>,
+//     D: Digest + std::marker::Copy,
+// {
+//     fn get_curve(&self) -> E {
+//         self.e
+//     }
+//     fn get_hash_to_field(&self) -> H {
+//         self.e.get_field().get_hash_to_field()
+//     }
+//     fn get_map(&self) -> M {
+//         SSWU::new(self.e)
+//     }
+//     fn get_hash(&self) -> D {
+//         Sha256::new()
+//     }
 // }
 
 pub trait Mapping<F, E>: Sized
@@ -52,26 +79,4 @@ where
     E: EllipticCurve,
 {
     fn map(&self, _: <F as Field>::Elt) -> <E as EllipticCurve>::P;
-}
-
-pub struct SSWU<'a> {
-    e: &'a weierstrass::Curve,
-}
-
-impl<'a> SSWU<'a> {
-    pub fn new(e: &'a weierstrass::Curve) -> SSWU<'a> {
-        SSWU { e }
-    }
-}
-
-impl<'a> Mapping<PrimeField, weierstrass::Curve> for SSWU<'a> {
-    fn map(&self, _: FpElt) -> weierstrass::Point {
-        self.e.get_generator()
-    }
-}
-
-impl std::fmt::Display for SSWU<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SSWU Mapping")
-    }
 }
