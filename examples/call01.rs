@@ -1,5 +1,6 @@
 extern crate num_bigint;
 
+use redox_ecc::Sgn0;
 use std::convert::From;
 
 use num_bigint::BigUint;
@@ -61,14 +62,19 @@ fn main() {
     }
     */
 
-    let f = PrimeField::create(BigUint::from(101u32));
-    let a: FpElt = f.from(7);
-    let b: FpElt = f.from(65);
+    let f = PrimeField::create(BigUint::from(103u32));
+    let a: FpElt = f.from(52);
+    println!("N: {} ", a.sgn0_le());
+    let a: FpElt = f.from(51);
+    println!("N: {} ", a.sgn0_le());
+    let a: FpElt = f.from(1);
+    println!("N: {} ", a.sgn0_le());
+    let a: FpElt = f.from(0);
+    println!("N: {} ", a.sgn0_le());
 
-    println!("N: {} ", &a);
-    println!("N: {} ", a.sqrt());
-    println!("N: {} ", &b);
-    println!("N: {} ", b.sqrt());
+    // println!("N: {} ", &a);
+    // println!("N: {} ", &b);
+    // println!("N: {} ", b.sqrt());
 
     // let ec = weierstrass::Curve::from(P256);
     // println!("N: {} ", P256);

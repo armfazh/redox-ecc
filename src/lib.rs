@@ -28,6 +28,20 @@ pub trait Field {
     fn one(&self) -> Self::Elt;
 }
 
+pub trait CMov {
+    fn cmov(x: &Self, y: &Self, b: bool) -> Self;
+}
+
+pub trait Sqrt {
+    fn is_square(&self) -> bool;
+    fn sqrt(&self) -> Self;
+}
+
+pub trait Sgn0 {
+    fn sgn0_be(&self) -> i32;
+    fn sgn0_le(&self) -> i32;
+}
+
 /// Curve trait allows to implement elliptic curve operations.
 pub trait EllipticCurve: PartialEq {
     type Field;

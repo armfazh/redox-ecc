@@ -9,12 +9,13 @@ use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
 
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::ops::BitXor;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::rc::Rc;
 
-use crate::Field;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
+use crate::{CMov, Field};
 
 struct Params {
     p: BigInt,
@@ -117,23 +118,6 @@ impl FpElt {
     }
 }
 
-impl FpElt {
-    #[inline]
-    pub fn cmov(x: &FpElt, y: &FpElt, b: bool) -> FpElt {
-        if b {
-            y.clone()
-        } else {
-            x.clone()
-        }
-    }
-    #[inline]
-    pub fn is_square(&self) -> bool {
-        let p_minus_1_div_2 = (&self.f.p - 1) >> 1usize;
-        let res: FpElt = self ^ &p_minus_1_div_2;
-        res.is_one() || res.is_zero()
-    }
-}
-
 impl<'a> Div<&'a FpElt> for u32 {
     type Output = FpElt;
     #[inline]
@@ -216,15 +200,21 @@ impl SqrtPrecmp {
                 sqrt_minus_one,
             }
         } else if 9u32 == (res % 16u32) {
-            SqrtPrecmp::P9MOD16 {}
+            SqrtPrecmp::P9MOD16
         } else {
-            SqrtPrecmp::P1MOD16 {}
+            SqrtPrecmp::P1MOD16
         }
     }
 }
-impl FpElt {
+
+impl crate::Sqrt for FpElt {
     #[inline]
-    pub fn sqrt(&self) -> FpElt {
+    fn is_square(&self) -> bool {
+        let p_minus_1_div_2 = (&self.f.p - 1) >> 1usize;
+        let res: FpElt = self ^ &p_minus_1_div_2;
+        res.is_one() || res.is_zero()
+    }
+    fn sqrt(&self) -> FpElt {
         let pre = &self.f.sqrt_precmp;
         match &*pre.borrow() {
             SqrtPrecmp::P3MOD4 { exp } => self ^ exp,
@@ -241,6 +231,31 @@ impl FpElt {
             SqrtPrecmp::P9MOD16 => unimplemented!(),
             SqrtPrecmp::P1MOD16 => unimplemented!(),
             SqrtPrecmp::Empty => unimplemented!(),
+        }
+    }
+}
+
+impl crate::Sgn0 for FpElt {
+    fn sgn0_be(&self) -> i32 {
+        let p_minus_1_div_2: BigInt = (&self.f.p - 1) >> 1usize;
+        match &p_minus_1_div_2.cmp(&self.n) {
+            Ordering::Equal | Ordering::Greater => 1,
+            Ordering::Less => -1,
+        }
+    }
+    fn sgn0_le(&self) -> i32 {
+        let res = (&self.n % 2u32).to_i32().unwrap();
+        1i32 - 2i32 * res
+    }
+}
+
+impl crate::CMov for FpElt {
+    #[inline]
+    fn cmov(x: &FpElt, y: &FpElt, b: bool) -> FpElt {
+        if b {
+            y.clone()
+        } else {
+            x.clone()
         }
     }
 }
