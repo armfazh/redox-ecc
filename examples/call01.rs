@@ -81,6 +81,8 @@ fn main() {
     println!("a: {} ", a);
     let map = weierstrass::SSWU::new(&ec, f.from(-10), Sgn0Choice::Sgn0BE);
     println!("map: {} ", map.map(f.from(3)));
+    let map = weierstrass::SVDW::new(&ec, f.from(-3), Sgn0Choice::Sgn0BE);
+    println!("map: {} ", map.map(f.from(3)));
     // let enc = h2c::Encoding {
     //     e: ec,
     //     hash_func: Sha256::new(),
