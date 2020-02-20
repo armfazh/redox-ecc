@@ -58,6 +58,14 @@ impl std::cmp::PartialEq for Scalar {
     }
 }
 
+impl<'a> Div<&'a Scalar> for u32 {
+    type Output = Scalar;
+    #[inline]
+    fn div(self, other: &Scalar) -> Self::Output {
+        do_if_eq!(self, 1u32, other.inv_mod(), ERR_INV_OP)
+    }
+}
+
 impl<'a, 'b> Mul<&'b Point> for &'a Scalar {
     type Output = Point;
     #[inline]
@@ -124,6 +132,7 @@ impl Scalar {
 }
 
 const ERR_BIN_OP: &str = "elements of different groups";
+const ERR_INV_OP: &str = "numerator must be 1u32";
 
 impl_binary_op!(Scalar, Add, add, add_mod, r, ERR_BIN_OP);
 impl_binary_op!(Scalar, Sub, sub, sub_mod, r, ERR_BIN_OP);
