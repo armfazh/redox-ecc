@@ -2,8 +2,9 @@
 //!
 //! The field module is meant to be used for bar.
 
+use crypto::digest::Digest;
+use crypto::hkdf::{hkdf_expand, hkdf_extract};
 use num_bigint::{BigInt, BigUint, ToBigInt};
-
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
@@ -15,7 +16,7 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::rc::Rc;
 
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
-use crate::{CMov, Field};
+use crate::{CMov, Field, HashToField};
 
 struct Params {
     p: BigInt,
@@ -288,5 +289,34 @@ impl std::fmt::Display for FpElt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let x = self.n.mod_floor(&self.f.p);
         write!(f, "{}", x)
+    }
+}
+
+impl std::fmt::Display for PrimeField {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "GF({})", &self.0.p)
+    }
+}
+
+impl HashToField for PrimeField {
+    type Output = FpElt;
+    fn hash<D: Digest + Copy + Sized>(
+        &self,
+        hash_func: D,
+        msg: &[u8],
+        dst: &[u8],
+        ctr: u8,
+        l: usize,
+    ) -> Self::Output {
+        let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
+        let mut vmsg = msg.to_vec();
+        vmsg.push(0u8);
+        let mut msg_prime = Vec::new();
+        msg_prime.resize(hash_func.output_bytes(), 0);
+        hkdf_extract(hash_func, dst, &vmsg, &mut msg_prime);
+        let mut v = Vec::new();
+        v.resize(l, 0);
+        hkdf_expand(hash_func, &msg_prime, &info, &mut v);
+        self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v))
     }
 }

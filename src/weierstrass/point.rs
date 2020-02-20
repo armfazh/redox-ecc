@@ -28,6 +28,8 @@ pub struct Point {
     pub(super) c: ProyCoordinates,
 }
 
+impl crate::Point for Point {}
+
 impl Point {
     pub fn normalize(&mut self) {
         let inv_z = 1u32 / &self.c.z;

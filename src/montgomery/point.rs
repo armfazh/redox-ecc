@@ -23,6 +23,7 @@ pub struct Point {
     pub(super) e: Curve,
     pub(super) c: ProyCoordinates,
 }
+impl crate::Point for Point {}
 
 impl Point {
     pub fn normalize(&mut self) {

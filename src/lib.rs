@@ -5,13 +5,16 @@
 // #![warn(missing_docs)]
 
 extern crate num_bigint;
+use crypto::digest::Digest;
 use num_bigint::{BigInt, BigUint};
+use std::ops::{Add, Mul};
 
 mod macros;
 
 pub mod field;
 
 pub mod edwards;
+pub mod h2c;
 pub mod montgomery;
 pub mod weierstrass;
 
@@ -42,19 +45,40 @@ pub trait Sgn0 {
     fn sgn0_le(&self) -> i32;
 }
 
+pub trait HashToField: Field {
+    type Output;
+    fn hash<D: Digest + Copy + Sized>(
+        &self,
+        hash_func: D,
+        msg: &[u8],
+        dst: &[u8],
+        ctr: u8,
+        l: usize,
+    ) -> Self::Output;
+}
+
+pub trait Point: Sized + Add<Output = Self> {}
+
+pub trait Scalar<P>: Sized + Mul<P, Output = P>
+where
+    P: Point,
+{
+}
+
 /// Curve trait allows to implement elliptic curve operations.
 pub trait EllipticCurve: PartialEq {
-    type Field;
-    type Point;
+    type F: Field;
+    type P: Point;
+    type S: Scalar<Self::P>;
     type Coordinates;
-    type Scalar;
-    fn new_point(&self, _: Self::Coordinates) -> Self::Point;
-    fn new_scalar(&self, _: BigInt) -> Self::Scalar;
-    fn identity(&self) -> Self::Point;
-    fn get_generator(&self) -> Self::Point;
-    fn is_on_curve(&self, _: &Self::Point) -> bool;
+    fn new_point(&self, _: Self::Coordinates) -> Self::P;
+    fn new_scalar(&self, _: BigInt) -> Self::S;
+    fn identity(&self) -> Self::P;
+    fn get_generator(&self) -> Self::P;
+    fn is_on_curve(&self, _: &Self::P) -> bool;
     fn get_order(&self) -> BigUint;
-    fn get_field(&self) -> Self::Field;
+    fn get_cofactor(&self) -> BigInt;
+    fn get_field(&self) -> Self::F;
 }
 
 #[cfg(test)]

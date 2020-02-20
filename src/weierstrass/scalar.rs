@@ -27,6 +27,8 @@ impl Scalar {
     }
 }
 
+impl crate::Scalar<Point> for Scalar {}
+
 impl Scalar {
     #[inline]
     fn red(&self, k: BigInt) -> Self {

@@ -8,7 +8,7 @@ extern crate num_integer;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 
-use std::ops::{Add, Mul, Neg, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use crate::montgomery::point::Point;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
@@ -26,6 +26,7 @@ impl Scalar {
         Scalar { k, r }
     }
 }
+impl crate::Scalar<Point> for Scalar {}
 
 impl Scalar {
     #[inline]
@@ -49,6 +50,11 @@ impl Scalar {
     #[inline]
     fn mul_mod(&self, other: &Scalar) -> Self {
         self.red(&self.k * &other.k)
+    }
+    #[inline]
+    fn inv_mod(&self) -> Scalar {
+        let exp = &self.k - 2u32;
+        self.red(self.k.modpow(&exp, &self.k))
     }
 }
 

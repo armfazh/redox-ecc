@@ -3,7 +3,7 @@
 //! The curve module is meant to be used for bar.
 
 extern crate num_bigint;
-use num_bigint::{BigInt, BigUint};
+use num_bigint::{BigInt, BigUint, ToBigInt};
 
 use num_traits::identities::Zero;
 
@@ -13,9 +13,8 @@ use crate::field::{FpElt, PrimeField};
 use crate::weierstrass::point::{Point, ProyCoordinates};
 use crate::weierstrass::scalar::Scalar;
 use crate::weierstrass::CurveID;
-use crate::EllipticCurve;
-use crate::Field;
 use crate::{do_if_eq, FromFactory};
+use crate::{EllipticCurve, Field};
 
 /// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
 ///
@@ -32,26 +31,26 @@ pub struct Curve {
 }
 
 impl EllipticCurve for Curve {
-    type Field = PrimeField;
-    type Point = Point;
+    type F = PrimeField;
+    type P = Point;
     type Coordinates = ProyCoordinates;
-    type Scalar = Scalar;
-    fn new_point(&self, c: Self::Coordinates) -> Self::Point {
+    type S = Scalar;
+    fn new_point(&self, c: Self::Coordinates) -> Self::P {
         let e = self.clone();
         let pt = Point { e, c };
         do_if_eq!(self.is_on_curve(&pt), true, pt, ERR_ECC_NEW)
     }
-    fn new_scalar(&self, k: BigInt) -> Self::Scalar {
+    fn new_scalar(&self, k: BigInt) -> Self::S {
         Scalar::new(k, &self.r)
     }
-    fn identity(&self) -> Self::Point {
+    fn identity(&self) -> Self::P {
         self.new_point(ProyCoordinates {
             x: self.f.zero(),
             y: self.f.one(),
             z: self.f.zero(),
         })
     }
-    fn is_on_curve(&self, p: &Self::Point) -> bool {
+    fn is_on_curve(&self, p: &Self::P) -> bool {
         let p = &p.c;
         let x3 = &p.x * &(&p.x ^ 2u32);
         let bz = &self.b * &p.z;
@@ -64,10 +63,13 @@ impl EllipticCurve for Curve {
     fn get_order(&self) -> BigUint {
         self.r.clone()
     }
-    fn get_field(&self) -> Self::Field {
+    fn get_field(&self) -> Self::F {
         self.f.clone()
     }
-    fn get_generator(&self) -> Self::Point {
+    fn get_cofactor(&self) -> BigInt {
+        self.h.to_bigint().unwrap()
+    }
+    fn get_generator(&self) -> Self::P {
         self.new_point(ProyCoordinates {
             x: self.gx.clone(),
             y: self.gy.clone(),

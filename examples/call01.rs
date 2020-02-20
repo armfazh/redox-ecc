@@ -1,22 +1,25 @@
 extern crate num_bigint;
 
-use redox_ecc::Sgn0;
+use crypto::sha2::Sha256;
 use std::convert::From;
 
-use num_bigint::BigUint;
+// use num_bigint::BigUint;
 // use num_integer::Integer;
 
 // use redox_ecc::edwards;
 // use redox_ecc::edwards::EDWARDS448;
-use redox_ecc::field::{FpElt, PrimeField};
+// use redox_ecc::field::{FpElt, PrimeField};
 // use redox_ecc::montgomery;
 // use redox_ecc::montgomery::CURVE25519;
 use redox_ecc::version;
-// use redox_ecc::weierstrass;
+use redox_ecc::weierstrass;
 // use redox_ecc::weierstrass::ProyCoordinates;
-// use redox_ecc::weierstrass::P256;
-// use redox_ecc::EllipticCurve;
+use redox_ecc::h2c;
+use redox_ecc::h2c::Mapping;
+use redox_ecc::weierstrass::P256;
+use redox_ecc::EllipticCurve;
 use redox_ecc::FromFactory;
+use redox_ecc::HashToField;
 
 fn main() {
     println!("{}", version());
@@ -62,23 +65,30 @@ fn main() {
     }
     */
 
-    let f = PrimeField::create(BigUint::from(103u32));
-    let a: FpElt = f.from(52);
-    println!("N: {} ", a.sgn0_le());
-    let a: FpElt = f.from(51);
-    println!("N: {} ", a.sgn0_le());
-    let a: FpElt = f.from(1);
-    println!("N: {} ", a.sgn0_le());
-    let a: FpElt = f.from(0);
-    println!("N: {} ", a.sgn0_le());
-
     // println!("N: {} ", &a);
     // println!("N: {} ", &b);
     // println!("N: {} ", b.sqrt());
 
-    // let ec = weierstrass::Curve::from(P256);
+    let ec = weierstrass::Curve::from(P256);
+    let f = ec.get_field();
+
+    let msg = "hola".as_bytes();
+    let dst = "mundo".as_bytes();
+
+    let a = f.hash(Sha256::new(), msg, dst, 0u8, 48usize);
+    println!("a: {} ", f);
+    println!("a: {} ", a);
+    let map = h2c::SSWU::new(&ec);
+    println!("map: {} ", map);
+    println!("map: {} ", map.map(f.from(3)));
+    // let enc = h2c::Encoding {
+    //     e: ec,
+    //     hash_func: Sha256::new(),
+    //     l: 48,
+    //     mapping: map,
+    //     ro: true,
+    // };
     // println!("N: {} ", P256);
-    // println!("E: {} ", ec);
     // let gg = ec.get_generator();
     // let f = ec.get_field();
     // let g2 = ec.new_point(ProyCoordinates {
