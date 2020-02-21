@@ -1,6 +1,6 @@
 extern crate num_bigint;
 
-use crypto::sha2::Sha256;
+use crypto::sha2::{Sha256, Sha512};
 use std::convert::From;
 
 // use num_bigint::BigUint;
@@ -92,6 +92,7 @@ fn main() {
     let msg = "hola".as_bytes();
     let dst = "hola".as_bytes();
     println!("enc: {} ", enc.hash(msg, dst));
+    println!("enc: {} ", enc.meto());
     // println!("N: {} ", P256);
     // let gg = ec.get_generator();
     // let f = ec.get_field();

@@ -300,7 +300,7 @@ impl std::fmt::Display for PrimeField {
 
 impl HashToField for PrimeField {
     type Output = FpElt;
-    fn hash<D: Digest + Copy + Sized>(
+    fn hash<D: Clone + Digest>(
         &self,
         hash_func: D,
         msg: &[u8],
@@ -313,7 +313,7 @@ impl HashToField for PrimeField {
         vmsg.push(0u8);
         let mut msg_prime = Vec::new();
         msg_prime.resize(hash_func.output_bytes(), 0);
-        hkdf_extract(hash_func, dst, &vmsg, &mut msg_prime);
+        hkdf_extract(hash_func.clone(), dst, &vmsg, &mut msg_prime);
         let mut v = Vec::new();
         v.resize(l, 0);
         hkdf_expand(hash_func, &msg_prime, &info, &mut v);

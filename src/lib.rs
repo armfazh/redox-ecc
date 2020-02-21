@@ -63,7 +63,7 @@ where
     Self: Sized,
 {
     type Output;
-    fn hash<D: Digest + Copy + Sized>(
+    fn hash<D: Digest + Clone>(
         &self,
         hash_func: D,
         msg: &[u8],

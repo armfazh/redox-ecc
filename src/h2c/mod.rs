@@ -12,6 +12,7 @@ pub enum HashID {
     SHA512,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct Suite(pub &'static str);
 
 pub trait Mapping<F, E>: Sized
@@ -27,11 +28,11 @@ where
     E: EllipticCurve,
     H: HashToField<Output = <<E as EllipticCurve>::F as Field>::Elt>,
     M: Mapping<<E as EllipticCurve>::F, E>,
-    D: Digest + std::marker::Copy,
+    D: Digest + Clone,
 {
-    fn get_curve(&self) -> E;
-    fn get_hash_to_field(&self) -> H;
-    fn get_map(&self) -> M;
+    fn get_curve(&self) -> &E;
+    fn get_hash_to_field(&self) -> &H;
+    fn get_map(&self) -> &M;
     fn get_hash(&self) -> D;
     fn get_size(&self) -> usize;
     fn is_random_oracle(&self) -> bool;

@@ -1,4 +1,4 @@
-use crate::weierstrass::P256;
+use crate::weierstrass::{P256, P521};
 use crate::HashToField;
 use num_traits::identities::Zero;
 
@@ -75,26 +75,34 @@ impl Mapping<PrimeField, Curve> for SSWU {
     }
 }
 
-pub struct Encoding {
+pub struct Encoding<D, M>
+where
+    D: Digest + Clone,
+    M: Mapping<<Curve as EllipticCurve>::F, Curve>,
+{
     pub e: Curve,
-    pub hash_func: Sha256,
+    pub hash_func: D,
     pub l: usize,
     pub ro: bool,
-    pub map: SSWU,
+    pub map: M,
 }
 
-impl HashToPoint<Curve, PrimeField, SSWU, Sha256> for Encoding {
-    fn get_curve(&self) -> Curve {
-        self.e.clone()
+impl<D, M> HashToPoint<Curve, PrimeField, M, D> for Encoding<D, M>
+where
+    D: Digest + Clone,
+    M: Mapping<<Curve as EllipticCurve>::F, Curve>,
+{
+    fn get_curve(&self) -> &Curve {
+        &self.e
     }
-    fn get_hash_to_field(&self) -> PrimeField {
-        self.e.f.clone()
+    fn get_hash_to_field(&self) -> &PrimeField {
+        &self.e.f
     }
-    fn get_map(&self) -> SSWU {
-        self.map.clone()
+    fn get_map(&self) -> &M {
+        &self.map
     }
-    fn get_hash(&self) -> Sha256 {
-        self.hash_func
+    fn get_hash(&self) -> D {
+        self.hash_func.clone()
     }
     fn get_size(&self) -> usize {
         self.l
@@ -104,24 +112,58 @@ impl HashToPoint<Curve, PrimeField, SSWU, Sha256> for Encoding {
     }
 }
 
-impl From<Suite> for Encoding {
-    fn from(s: Suite) -> Self {
-        let e = Curve::from(P256);
-        let f = e.get_field();
-        let l = 48;
-        let z = f.from(-10);
-        let ro = true;
-        let s = Sgn0Choice::Sgn0BE;
-        let map = SSWU::new(e.clone(), z, s);
-        let hash_func = Sha256::new();
-        Encoding {
-            e,
-            hash_func,
-            l,
-            map,
-            ro,
-        }
+impl Encoding<Sha256, SSWU> {
+    pub fn meto(&self) -> String {
+        String::from("hola")
     }
 }
+impl Encoding<Sha512, SSWU> {}
+
+// impl<D, M> From<Suite> for Encoding<D, M>
+// where
+//     D: Digest,
+//     M: Mapping<<Curve as EllipticCurve>::F, Curve>,
+// {
+//     fn from(s: Suite) -> Self {
+//         match s {
+//             P256_SHA256_SSWU_NU_ => {
+//                 let e = Curve::from(P256);
+//                 let f = e.get_field();
+//                 let l = 48;
+//                 let z = f.from(-10);
+//                 let ro = true;
+//                 let s = Sgn0Choice::Sgn0LE;
+//                 let map = SSWU::new(e.clone(), z, s);
+//                 let hash_func = Sha256::new();
+//                 Encoding {
+//                     e,
+//                     hash_func,
+//                     l,
+//                     map,
+//                     ro,
+//                 }
+//             }
+//             P521_SHA512_SSWU_NU_ => {
+//                 let e = Curve::from(P521);
+//                 let f = e.get_field();
+//                 let l = 96;
+//                 let z = f.from(-4);
+//                 let ro = false;
+//                 let s = Sgn0Choice::Sgn0LE;
+//                 let map = SSWU::new(e.clone(), z, s);
+//                 let hash_func = Sha512::new();
+//                 Encoding {
+//                     e,
+//                     hash_func,
+//                     l,
+//                     map,
+//                     ro,
+//                 }
+//             }
+//             _ => panic!("Suite not supported"),
+//         }
+//     }
+// }
 
 pub const P256_SHA256_SSWU_NU_: Suite = Suite("P256_SHA256_SSWU_NU_");
+pub const P521_SHA512_SSWU_NU_: Suite = Suite("P521_SHA512_SSWU_NU_");
