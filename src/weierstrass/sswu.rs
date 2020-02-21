@@ -1,23 +1,28 @@
+use crate::weierstrass::P256;
+use crate::HashToField;
 use num_traits::identities::Zero;
 
 use crate::field::{FpElt, PrimeField};
-use crate::h2c::Mapping;
+use crate::h2c::{HashID, HashToPoint, Mapping, Suite};
 use crate::weierstrass::{Curve, Point, ProyCoordinates};
 use crate::{CMov, Field, Sgn0};
 use crate::{EllipticCurve, Sgn0Choice};
 use crate::{FromFactory, Sqrt};
+use crypto::digest::Digest;
+use crypto::sha2::{Sha256, Sha512};
 
-pub struct SSWU<'a> {
-    e: &'a Curve,
+#[derive(Clone)]
+pub struct SSWU {
+    e: Curve,
     c1: FpElt,
     c2: FpElt,
     z: FpElt,
     sgn0: Sgn0Choice,
 }
 
-impl<'a> SSWU<'a> {
-    pub fn new(e: &'a Curve, z: FpElt, sgn0: Sgn0Choice) -> SSWU<'a> {
-        if !SSWU::verify(e, &z) {
+impl SSWU {
+    pub fn new(e: Curve, z: FpElt, sgn0: Sgn0Choice) -> SSWU {
+        if !SSWU::verify(&e, &z) {
             panic!("wrong input parameters")
         } else {
             let c1 = -&e.b * (1u32 / &e.a);
@@ -25,7 +30,7 @@ impl<'a> SSWU<'a> {
             SSWU { e, c1, c2, z, sgn0 }
         }
     }
-    fn verify(e: &'a Curve, z: &FpElt) -> bool {
+    fn verify(e: &Curve, z: &FpElt) -> bool {
         let f = e.get_field();
         let precond1 = !e.a.is_zero(); //              A != 0
         let precond2 = !e.b.is_zero(); //              B != 0
@@ -38,7 +43,7 @@ impl<'a> SSWU<'a> {
     }
 }
 
-impl<'a> Mapping<PrimeField, Curve> for SSWU<'a> {
+impl Mapping<PrimeField, Curve> for SSWU {
     fn map(&self, u: FpElt) -> Point {
         let f = self.e.get_field();
         let cmov = FpElt::cmov;
@@ -69,3 +74,54 @@ impl<'a> Mapping<PrimeField, Curve> for SSWU<'a> {
         self.e.new_point(ProyCoordinates { x, y, z })
     }
 }
+
+pub struct Encoding {
+    pub e: Curve,
+    pub hash_func: Sha256,
+    pub l: usize,
+    pub ro: bool,
+    pub map: SSWU,
+}
+
+impl HashToPoint<Curve, PrimeField, SSWU, Sha256> for Encoding {
+    fn get_curve(&self) -> Curve {
+        self.e.clone()
+    }
+    fn get_hash_to_field(&self) -> PrimeField {
+        self.e.f.clone()
+    }
+    fn get_map(&self) -> SSWU {
+        self.map.clone()
+    }
+    fn get_hash(&self) -> Sha256 {
+        self.hash_func
+    }
+    fn get_size(&self) -> usize {
+        self.l
+    }
+    fn is_random_oracle(&self) -> bool {
+        self.ro
+    }
+}
+
+impl From<Suite> for Encoding {
+    fn from(s: Suite) -> Self {
+        let e = Curve::from(P256);
+        let f = e.get_field();
+        let l = 48;
+        let z = f.from(-10);
+        let ro = true;
+        let s = Sgn0Choice::Sgn0BE;
+        let map = SSWU::new(e.clone(), z, s);
+        let hash_func = Sha256::new();
+        Encoding {
+            e,
+            hash_func,
+            l,
+            map,
+            ro,
+        }
+    }
+}
+
+pub const P256_SHA256_SSWU_NU_: Suite = Suite("P256_SHA256_SSWU_NU_");

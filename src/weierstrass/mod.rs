@@ -9,7 +9,7 @@ mod svdw;
 pub use crate::weierstrass::curve::Curve;
 pub use crate::weierstrass::point::{Point, ProyCoordinates};
 pub use crate::weierstrass::scalar::Scalar;
-pub use crate::weierstrass::sswu::SSWU;
+pub use crate::weierstrass::sswu::{Encoding, SSWU};
 pub use crate::weierstrass::svdw::SVDW;
 
 pub struct CurveID(&'static Params);

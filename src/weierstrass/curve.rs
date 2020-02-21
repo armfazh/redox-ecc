@@ -21,7 +21,7 @@ use crate::{EllipticCurve, Field};
 /// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct Curve {
-    f: PrimeField,
+    pub(super) f: PrimeField,
     pub(super) a: FpElt,
     pub(super) b: FpElt,
     pub(super) r: BigUint,

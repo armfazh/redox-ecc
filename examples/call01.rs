@@ -14,7 +14,8 @@ use std::convert::From;
 use redox_ecc::version;
 use redox_ecc::weierstrass;
 // use redox_ecc::weierstrass::ProyCoordinates;
-use redox_ecc::h2c;
+// use redox_ecc::h2c;
+use redox_ecc::h2c::HashToPoint;
 use redox_ecc::h2c::Mapping;
 use redox_ecc::weierstrass::P256;
 use redox_ecc::EllipticCurve;
@@ -79,18 +80,18 @@ fn main() {
     let a = f.hash(Sha256::new(), msg, dst, 0u8, 48usize);
     println!("a: {} ", f);
     println!("a: {} ", a);
-    let map = weierstrass::SSWU::new(&ec, f.from(-10), Sgn0Choice::Sgn0BE);
-    println!("map: {} ", map.map(f.from(3)));
-    let map = weierstrass::SVDW::new(&ec, f.from(-3), Sgn0Choice::Sgn0BE);
-    println!("map: {} ", map.map(f.from(3)));
-    // let enc = h2c::Encoding {
-    //     e: ec,
-    //     hash_func: Sha256::new(),
-    //     l: 48,
-    //     mapping: map,
-    //     ro: true,
-    // };
-    // println!("enc: {} ", enc);
+    // let map = weierstrass::SVDW::new(&ec, f.from(-3), Sgn0Choice::Sgn0BE);
+    // println!("map: {} ", map.map(f.from(3)));
+    let enc = weierstrass::Encoding {
+        e: ec.clone(),
+        hash_func: Sha256::new(),
+        l: 48,
+        map: weierstrass::SSWU::new(ec.clone(), f.from(-10), Sgn0Choice::Sgn0BE),
+        ro: true,
+    };
+    let msg = "hola".as_bytes();
+    let dst = "hola".as_bytes();
+    println!("enc: {} ", enc.hash(msg, dst));
     // println!("N: {} ", P256);
     // let gg = ec.get_generator();
     // let f = ec.get_field();
