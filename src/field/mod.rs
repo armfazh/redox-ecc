@@ -15,8 +15,9 @@ use std::ops::BitXor;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::rc::Rc;
 
+use crate::h2c::HashToField;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
-use crate::{CMov, Field, HashToField};
+use crate::{CMov, Field};
 
 struct Params {
     p: BigInt,
@@ -67,11 +68,10 @@ impl Field for PrimeField {
 }
 
 macro_rules! impl_from_factory {
-    ($target:ident, $output:ident, <$($other:ty)+> ) => {
+    ($target:ident, <$($other:ty)+> ) => {
      $(
          impl crate::FromFactory<$other> for $target{
-             type Output = $output;
-            fn from(&self, n: $other) -> Self::Output {
+            fn from(&self, n: $other) -> <Self as Field>::Elt {
                 self.new(BigInt::from(n))
             }
         }
@@ -79,11 +79,24 @@ macro_rules! impl_from_factory {
     };
 }
 
-impl_from_factory!(PrimeField, FpElt, <u8 u16 u32 u64 i8 i16 i32 i64>);
+impl_from_factory!(PrimeField, <u8 u16 u32 u64 i8 i16 i32 i64>);
+
+macro_rules! impl_into_factory {
+    ($target:ident, <$($other:ty)+> ) => {
+     $(
+         impl crate::IntoFactory<$target> for $other{
+            fn lift(&self, fab: $target) ->  <$target as Field>::Elt {
+                fab.new(BigInt::from(*self))
+            }
+        }
+    )+
+    };
+}
+
+impl_into_factory!(PrimeField, <u8 u16 u32 u64 i8 i16 i32 i64>);
 
 impl crate::FromFactory<&str> for PrimeField {
-    type Output = FpElt;
-    fn from(&self, s: &str) -> Self::Output {
+    fn from(&self, s: &str) -> <Self as Field>::Elt {
         use std::str::FromStr;
         self.new(BigInt::from_str(s).unwrap())
     }
@@ -299,21 +312,20 @@ impl std::fmt::Display for PrimeField {
 }
 
 impl HashToField for PrimeField {
-    type Output = FpElt;
-    fn hash<D: Clone + Digest>(
+    fn hash<D: Digest + Copy>(
         &self,
         hash_func: D,
         msg: &[u8],
         dst: &[u8],
         ctr: u8,
         l: usize,
-    ) -> Self::Output {
+    ) -> <Self as Field>::Elt {
         let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
         let mut vmsg = msg.to_vec();
         vmsg.push(0u8);
         let mut msg_prime = Vec::new();
         msg_prime.resize(hash_func.output_bytes(), 0);
-        hkdf_extract(hash_func.clone(), dst, &vmsg, &mut msg_prime);
+        hkdf_extract(hash_func, dst, &vmsg, &mut msg_prime);
         let mut v = Vec::new();
         v.resize(l, 0);
         hkdf_expand(hash_func, &msg_prime, &info, &mut v);

@@ -1,60 +1,72 @@
-use crate::field::{FpElt, PrimeField};
-use crate::weierstrass;
 use crate::EllipticCurve;
 use crate::Field;
-use crate::HashToField;
 use crypto::digest::Digest;
-use crypto::sha2::Sha256;
-use crypto::sha2::Sha512;
 
-pub enum HashID {
-    SHA256,
-    SHA512,
+/// HashToField hashes a string msg of any length into an element of a field F.
+/// This function is parametrized by a cryptographic hash function.
+pub trait HashToField: Field {
+    fn hash<D: Digest + Copy>(
+        &self,
+        hash_func: D,
+        msg: &[u8],
+        dst: &[u8],
+        ctr: u8,
+        l: usize,
+    ) -> <Self as Field>::Elt;
 }
 
-#[derive(PartialEq, Eq)]
-pub struct Suite(pub &'static str);
-
-pub trait Mapping<F, E>: Sized
-where
-    F: Field,
-    E: EllipticCurve,
-{
-    fn map(&self, _: <F as Field>::Elt) -> <E as EllipticCurve>::P;
+/// MapToCurve is a deterministic function from an element of the field F
+/// to a point on an elliptic curve E defined over F.
+pub trait MapToCurve {
+    type E: EllipticCurve;
+    fn map(
+        &self,
+        _: <<Self::E as EllipticCurve>::F as Field>::Elt,
+    ) -> <Self::E as EllipticCurve>::P;
 }
 
-pub trait HashToPoint<E, H, M, D>
+/// EncodeToCurve is a function that outputs a point on an elliptic curve from an
+/// arbitrary string.
+pub trait EncodeToCurve {
+    type E: EllipticCurve;
+    fn hash(&self, msg: &[u8], dst: &[u8]) -> <Self::E as EllipticCurve>::P;
+}
+
+pub struct Encoding<E, D, M>
 where
     E: EllipticCurve,
-    H: HashToField<Output = <<E as EllipticCurve>::F as Field>::Elt>,
-    M: Mapping<<E as EllipticCurve>::F, E>,
-    D: Digest + Clone,
+    D: Digest + Copy,
+    M: MapToCurve<E = E>,
+    <E as EllipticCurve>::F: HashToField,
 {
-    fn get_curve(&self) -> &E;
-    fn get_hash_to_field(&self) -> &H;
-    fn get_map(&self) -> &M;
-    fn get_hash(&self) -> D;
-    fn get_size(&self) -> usize;
-    fn is_random_oracle(&self) -> bool;
+    pub e: E,
+    pub h: fn() -> D,
+    pub map_to_curve: M,
+    pub l: usize,
+    pub ro: bool,
+}
+
+impl<E, D, M> EncodeToCurve for Encoding<E, D, M>
+where
+    E: EllipticCurve,
+    D: Digest + Copy,
+    M: MapToCurve<E = E>,
+    <E as EllipticCurve>::F: HashToField,
+{
+    type E = E;
     fn hash(&self, msg: &[u8], dst: &[u8]) -> <E as EllipticCurve>::P {
-        if self.is_random_oracle() {
-            let e = self.get_curve();
-            let f = self.get_hash_to_field();
-            let u0 = f.hash(self.get_hash(), msg, dst, 0u8, self.get_size());
-            let u1 = f.hash(self.get_hash(), msg, dst, 1u8, self.get_size());
-            let m = self.get_map();
-            let p0 = m.map(u0);
-            let p1 = m.map(u1);
-            let p = p0 + p1;
-            let h = e.new_scalar(e.get_cofactor());
-            h * p
+        let f = self.e.get_field();
+        let p = if self.ro {
+            let u0 = f.hash((self.h)(), msg, dst, 0u8, self.l);
+            let u1 = f.hash((self.h)(), msg, dst, 1u8, self.l);
+            let p0 = self.map_to_curve.map(u0);
+            let p1 = self.map_to_curve.map(u1);
+            p0 + p1
         } else {
-            let e = self.get_curve();
-            let f = self.get_hash_to_field();
-            let u = f.hash(self.get_hash(), msg, dst, 2u8, self.get_size());
-            let p = self.get_map().map(u);
-            let h = e.new_scalar(e.get_cofactor());
-            h * p
-        }
+            let u = f.hash((self.h)(), msg, dst, 2u8, self.l);
+            self.map_to_curve.map(u)
+        };
+        let h = self.e.new_scalar(self.e.get_cofactor());
+        h * p
     }
 }

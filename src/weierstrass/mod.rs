@@ -2,26 +2,36 @@
 //!
 //! The Weierstrass module is meant to be used for bar.
 mod curve;
+mod h2c;
 mod point;
 mod scalar;
-mod sswu;
-mod svdw;
 pub use crate::weierstrass::curve::Curve;
+pub use crate::weierstrass::h2c::{
+    Suite, P256_SHA256_SSWU_NU_, P256_SHA256_SSWU_RO_, P256_SHA256_SVDW_NU_, P256_SHA256_SVDW_RO_,
+    P384_SHA512_SSWU_NU_, P384_SHA512_SSWU_RO_, P384_SHA512_SVDW_NU_, P384_SHA512_SVDW_RO_,
+    P521_SHA512_SSWU_NU_, P521_SHA512_SSWU_RO_, P521_SHA512_SVDW_NU_, P521_SHA512_SVDW_RO_,
+    SECP256K1_SHA256_SSWU_NU_,
+};
 pub use crate::weierstrass::point::{Point, ProyCoordinates};
 pub use crate::weierstrass::scalar::Scalar;
-pub use crate::weierstrass::sswu::{Encoding, SSWU};
-pub use crate::weierstrass::svdw::SVDW;
 
+#[derive(Copy, Clone)]
 pub struct CurveID(&'static Params);
 
+impl std::fmt::Display for CurveID {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0.name)
+    }
+}
+
 /// P256 is the NIST P-256 elliptic curve.
-pub static P256: &CurveID = &CurveID(&P256_PARAMS);
+pub static P256: CurveID = CurveID(&P256_PARAMS);
 /// P384 is the NIST P-384 elliptic curve.
-pub static P384: &CurveID = &CurveID(&P384_PARAMS);
+pub static P384: CurveID = CurveID(&P384_PARAMS);
 /// P521 is the NIST P-521 elliptic curve.
-pub static P521: &CurveID = &CurveID(&P521_PARAMS);
+pub static P521: CurveID = CurveID(&P521_PARAMS);
 /// SECP256K1 is a 256-bit elliptic curve knwon as secp256k1.
-pub static SECP256K1: &CurveID = &CurveID(&SECP256K1_PARAMS);
+pub static SECP256K1: CurveID = CurveID(&SECP256K1_PARAMS);
 
 struct Params {
     pub name: &'static str,
@@ -74,9 +84,3 @@ static SECP256K1_PARAMS: Params = Params {
     gx: "55066263022277343669578718895168534326250603453777594175500187360389116729240",
     gy: "32670510020758816978083085130507043184471273380659243275938904335757337482424",
 };
-
-impl std::fmt::Display for CurveID {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0.name)
-    }
-}

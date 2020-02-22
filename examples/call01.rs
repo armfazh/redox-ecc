@@ -1,6 +1,6 @@
 extern crate num_bigint;
 
-use crypto::sha2::{Sha256, Sha512};
+use crypto::sha2::Sha256;
 use std::convert::From;
 
 // use num_bigint::BigUint;
@@ -15,13 +15,15 @@ use redox_ecc::version;
 use redox_ecc::weierstrass;
 // use redox_ecc::weierstrass::ProyCoordinates;
 // use redox_ecc::h2c;
-use redox_ecc::h2c::HashToPoint;
-use redox_ecc::h2c::Mapping;
+use redox_ecc::h2c::EncodeToCurve;
+
+use redox_ecc::h2c::HashToField;
 use redox_ecc::weierstrass::P256;
+use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
+use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
+use redox_ecc::weierstrass::{P256_SHA256_SVDW_NU_, P384_SHA512_SVDW_NU_, P521_SHA512_SVDW_NU_};
+use redox_ecc::weierstrass::{P256_SHA256_SVDW_RO_, P384_SHA512_SVDW_RO_, P521_SHA512_SVDW_RO_};
 use redox_ecc::EllipticCurve;
-use redox_ecc::FromFactory;
-use redox_ecc::HashToField;
-use redox_ecc::Sgn0Choice;
 
 fn main() {
     println!("{}", version());
@@ -80,19 +82,30 @@ fn main() {
     let a = f.hash(Sha256::new(), msg, dst, 0u8, 48usize);
     println!("a: {} ", f);
     println!("a: {} ", a);
-    // let map = weierstrass::SVDW::new(&ec, f.from(-3), Sgn0Choice::Sgn0BE);
-    // println!("map: {} ", map.map(f.from(3)));
-    let enc = weierstrass::Encoding {
-        e: ec.clone(),
-        hash_func: Sha256::new(),
-        l: 48,
-        map: weierstrass::SSWU::new(ec.clone(), f.from(-10), Sgn0Choice::Sgn0BE),
-        ro: true,
-    };
     let msg = "hola".as_bytes();
-    let dst = "hola".as_bytes();
-    println!("enc: {} ", enc.hash(msg, dst));
-    println!("enc: {} ", enc.meto());
+    let dst = "mundo".as_bytes();
+
+    macro_rules! x {
+        ($suite:ident ) => {
+            let enc = $suite.new(dst);
+            let mut p = enc.hash(msg, dst);
+            p.normalize();
+            println!("enc: {} {} ", $suite, p);
+        };
+    }
+    x!(P256_SHA256_SSWU_NU_);
+    x!(P256_SHA256_SSWU_RO_);
+    x!(P256_SHA256_SVDW_NU_);
+    x!(P256_SHA256_SVDW_RO_);
+    x!(P384_SHA512_SSWU_NU_);
+    x!(P384_SHA512_SSWU_RO_);
+    x!(P384_SHA512_SVDW_NU_);
+    x!(P384_SHA512_SVDW_RO_);
+    x!(P521_SHA512_SSWU_NU_);
+    x!(P521_SHA512_SSWU_RO_);
+    x!(P521_SHA512_SVDW_NU_);
+    x!(P521_SHA512_SVDW_RO_);
+
     // println!("N: {} ", P256);
     // let gg = ec.get_generator();
     // let f = ec.get_field();

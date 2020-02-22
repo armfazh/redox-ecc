@@ -1,14 +1,14 @@
 use num_traits::identities::Zero;
 
-use crate::field::{FpElt, PrimeField};
-use crate::h2c::Mapping;
-use crate::weierstrass::{Curve, Point, ProyCoordinates};
+use crate::field::FpElt;
+use crate::h2c::MapToCurve;
+use crate::weierstrass::{Curve, ProyCoordinates};
 use crate::{CMov, Field, Sgn0};
 use crate::{EllipticCurve, Sgn0Choice};
 use crate::{FromFactory, Sqrt};
 
-pub struct SVDW<'a> {
-    e: &'a Curve,
+pub struct SVDW {
+    e: Curve,
     c1: FpElt,
     c2: FpElt,
     c3: FpElt,
@@ -17,14 +17,14 @@ pub struct SVDW<'a> {
     sgn0: Sgn0Choice,
 }
 
-impl<'a> SVDW<'a> {
-    pub fn new(e: &'a Curve, z: FpElt, sgn0: Sgn0Choice) -> SVDW<'a> {
-        if !SVDW::verify(e, &z) {
+impl SVDW {
+    pub fn new(e: Curve, z: FpElt, sgn0: Sgn0Choice) -> SVDW {
+        if !SVDW::verify(&e, &z) {
             panic!("wrong input parameters")
         } else {
             let f = e.get_field();
             let (f2, f3, f4) = (f.from(2u32), f.from(3u32), f.from(4u32));
-            let c1 = SVDW::gx(e, &z);
+            let c1 = SVDW::gx(&e, &z);
             let c2 = -&z * (1u32 / &f2);
             let t0 = &c1 * &(&(f3 * (&z ^ 2u32)) + &(&f4 * &e.a));
             let t1 = -t0;
@@ -41,10 +41,10 @@ impl<'a> SVDW<'a> {
             }
         }
     }
-    fn gx(e: &'a Curve, x: &FpElt) -> FpElt {
+    fn gx(e: &Curve, x: &FpElt) -> FpElt {
         x * &((x ^ 2u32) + &e.a) + &e.b
     }
-    fn verify(e: &'a Curve, z: &FpElt) -> bool {
+    fn verify(e: &Curve, z: &FpElt) -> bool {
         let f = e.get_field();
         let (f2, f3, f4) = (f.from(2u32), f.from(3u32), f.from(4u32));
         let gz = SVDW::gx(e, z);
@@ -60,8 +60,12 @@ impl<'a> SVDW<'a> {
     }
 }
 
-impl<'a> Mapping<PrimeField, Curve> for SVDW<'a> {
-    fn map(&self, u: FpElt) -> Point {
+impl MapToCurve for SVDW {
+    type E = Curve;
+    fn map(
+        &self,
+        u: <<Self::E as EllipticCurve>::F as Field>::Elt,
+    ) -> <Self::E as EllipticCurve>::P {
         let f = self.e.get_field();
         let cmov = FpElt::cmov;
         let s = self.sgn0;
@@ -99,7 +103,7 @@ impl<'a> Mapping<PrimeField, Curve> for SVDW<'a> {
         gx = gx + &self.e.b; //             32.  gx = gx + B
         let mut y = gx.sqrt(); //           33.   y = sqrt(gx)
         let e3 = u.sgn0(s) == y.sgn0(s); // 34.  e3 = sgn0(u) == sgn0(y)
-        y = cmov(&-&y, &y, e3); //          35.   y = CMOV(-y, y, e3)
+        y = cmov(&(-&y), &y, e3); //        35.   y = CMOV(-y, y, e3)
         let z = f.one();
         self.e.new_point(ProyCoordinates { x, y, z })
     }

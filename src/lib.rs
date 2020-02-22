@@ -5,22 +5,14 @@
 // #![warn(missing_docs)]
 
 extern crate num_bigint;
-use crypto::digest::Digest;
 use num_bigint::{BigInt, BigUint};
 use std::ops::{Add, Mul};
 
-mod macros;
-
-pub mod field;
-
-pub mod edwards;
-pub mod h2c;
-pub mod montgomery;
-pub mod weierstrass;
-
-pub trait FromFactory<T: Sized> {
-    type Output;
-    fn from(&self, _: T) -> Self::Output;
+pub trait FromFactory<T: Sized>: Field {
+    fn from(&self, _: T) -> <Self as Field>::Elt;
+}
+pub trait IntoFactory<T: Field>: Sized {
+    fn lift(&self, _: T) -> <T as Field>::Elt;
 }
 
 /// Field is a fabric to instante a finite field. The type `Elt` determines the type of its elements.
@@ -58,21 +50,6 @@ pub trait Sgn0 {
     }
 }
 
-pub trait HashToField
-where
-    Self: Sized,
-{
-    type Output;
-    fn hash<D: Digest + Clone>(
-        &self,
-        hash_func: D,
-        msg: &[u8],
-        dst: &[u8],
-        ctr: u8,
-        l: usize,
-    ) -> Self::Output;
-}
-
 pub trait Point: Sized + Add<Output = Self> {}
 
 pub trait Scalar<P>: Sized + Mul<P, Output = P>
@@ -96,6 +73,15 @@ pub trait EllipticCurve: PartialEq {
     fn get_cofactor(&self) -> BigInt;
     fn get_field(&self) -> Self::F;
 }
+
+mod macros;
+
+pub mod field;
+
+pub mod edwards;
+pub mod h2c;
+pub mod montgomery;
+pub mod weierstrass;
 
 #[cfg(test)]
 mod tests;

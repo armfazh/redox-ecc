@@ -78,8 +78,8 @@ impl EllipticCurve for Curve {
     }
 }
 
-impl std::convert::From<&CurveID> for Curve {
-    fn from(id: &CurveID) -> Curve {
+impl std::convert::From<CurveID> for Curve {
+    fn from(id: CurveID) -> Curve {
         let params = id.0;
         let f = PrimeField::create(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
