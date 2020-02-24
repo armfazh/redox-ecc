@@ -76,14 +76,12 @@ fn main() {
     let ec = weierstrass::Curve::from(P256);
     let f = ec.get_field();
 
-    let msg = "hola".as_bytes();
-    let dst = "mundo".as_bytes();
+    let msg = "This is a message string".as_bytes();
+    let dst = "QUUX-V01-CS02".as_bytes();
 
     let a = f.hash(Sha256::new(), msg, dst, 0u8, 48usize);
     println!("a: {} ", f);
     println!("a: {} ", a);
-    let msg = "hola".as_bytes();
-    let dst = "mundo".as_bytes();
 
     macro_rules! x {
         ($suite:ident ) => {

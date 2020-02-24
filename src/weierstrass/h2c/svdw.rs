@@ -24,12 +24,15 @@ impl SVDW {
         } else {
             let f = e.get_field();
             let (f2, f3, f4) = (f.from(2u32), f.from(3u32), f.from(4u32));
-            let c1 = SVDW::gx(&e, &z);
+            let gz = -SVDW::gx(&e, &z);
+            let c1 = -&gz;
             let c2 = -&z * (1u32 / &f2);
-            let t0 = &c1 * &(&(f3 * (&z ^ 2u32)) + &(&f4 * &e.a));
-            let t1 = -t0;
-            let c3 = t1.sqrt();
-            let c4 = -&(f4 * t1);
+            let t0 = (f3 * (&z ^ 2u32)) + &(&f4 * &e.a);
+            let mut c3 = (&gz * &t0).sqrt();
+            if c3.sgn0(sgn0) == -1 {
+                c3 = -c3;
+            }
+            let c4 = (f4 * gz) * (1u32 / &t0);
             SVDW {
                 e,
                 c1,
