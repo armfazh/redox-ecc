@@ -3,7 +3,7 @@
 //! The field module is meant to be used for bar.
 
 use hkdf::Hkdf;
-use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
@@ -318,28 +318,13 @@ impl HashToField for PrimeField {
         vmsg.push(0u8);
         let mut v = Vec::new();
         v.resize(l, 0);
-        match h {
-            HashID::SHA256 => {
-                let hkdf = Hkdf::<Sha256>::new(Some(dst), &vmsg);
-                match hkdf.expand(&info, v.as_mut()) {
-                    Ok(_) => self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v)),
-                    Err(e) => panic!(e),
-                }
-            }
-            HashID::SHA384 => {
-                let hkdf = Hkdf::<Sha384>::new(Some(dst), &vmsg);
-                match hkdf.expand(&info, v.as_mut()) {
-                    Ok(_) => self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v)),
-                    Err(e) => panic!(e),
-                }
-            }
-            HashID::SHA512 => {
-                let hkdf = Hkdf::<Sha512>::new(Some(dst), &vmsg);
-                match hkdf.expand(&info, v.as_mut()) {
-                    Ok(_) => self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v)),
-                    Err(e) => panic!(e),
-                }
-            }
+        match match h {
+            HashID::SHA256 => Hkdf::<Sha256>::new(Some(dst), &vmsg).expand(&info, &mut v),
+            HashID::SHA384 => Hkdf::<Sha384>::new(Some(dst), &vmsg).expand(&info, &mut v),
+            HashID::SHA512 => Hkdf::<Sha512>::new(Some(dst), &vmsg).expand(&info, &mut v),
+        } {
+            Ok(_) => self.new(BigInt::from_bytes_be(Sign::Plus, &v)),
+            Err(e) => panic!(e),
         }
     }
 }
