@@ -20,7 +20,9 @@ harness = false
 [dependencies]
 num-bigint = "0.2.6"
 num-integer = "0.1.42"
-rust-crypto = "0.2.36"
+sha2 = "0.8.1"
+hkdf = "0.8.0"
+digest = "0.8.1"
 num-traits = "0.2.11"
 
 [dev-dependencies]

@@ -10,7 +10,7 @@ pub use crate::weierstrass::h2c::{
     Suite, P256_SHA256_SSWU_NU_, P256_SHA256_SSWU_RO_, P256_SHA256_SVDW_NU_, P256_SHA256_SVDW_RO_,
     P384_SHA512_SSWU_NU_, P384_SHA512_SSWU_RO_, P384_SHA512_SVDW_NU_, P384_SHA512_SVDW_RO_,
     P521_SHA512_SSWU_NU_, P521_SHA512_SSWU_RO_, P521_SHA512_SVDW_NU_, P521_SHA512_SVDW_RO_,
-    SECP256K1_SHA256_SSWU_NU_,
+    SECP256K1_SHA256_SSWU_NU_, SECP256K1_SHA256_SSWU_RO_,
 };
 pub use crate::weierstrass::point::{Point, ProyCoordinates};
 pub use crate::weierstrass::scalar::Scalar;

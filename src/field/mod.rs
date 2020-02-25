@@ -2,12 +2,12 @@
 //!
 //! The field module is meant to be used for bar.
 
-use crypto::digest::Digest;
-use crypto::hkdf::{hkdf_expand, hkdf_extract};
+use hkdf::Hkdf;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
+use sha2::{Sha256, Sha384, Sha512};
 
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -15,7 +15,7 @@ use std::ops::BitXor;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::rc::Rc;
 
-use crate::h2c::HashToField;
+use crate::h2c::{HashID, HashToField};
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 use crate::{CMov, Field};
 
@@ -38,7 +38,7 @@ impl PrimeField {
         // TODO: verify whether p is prime.
         let p = p.to_bigint().unwrap();
         let f = PrimeField(Rc::new(Params {
-            p: p.clone(),
+            p,
             sqrt_precmp: RefCell::new(SqrtPrecmp::Empty),
         }));
         f.0.sqrt_precmp.replace(SqrtPrecmp::new(&f));
@@ -312,23 +312,34 @@ impl std::fmt::Display for PrimeField {
 }
 
 impl HashToField for PrimeField {
-    fn hash<D: Digest + Copy>(
-        &self,
-        hash_func: D,
-        msg: &[u8],
-        dst: &[u8],
-        ctr: u8,
-        l: usize,
-    ) -> <Self as Field>::Elt {
+    fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> <Self as Field>::Elt {
         let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
         let mut vmsg = msg.to_vec();
         vmsg.push(0u8);
-        let mut msg_prime = Vec::new();
-        msg_prime.resize(hash_func.output_bytes(), 0);
-        hkdf_extract(hash_func, dst, &vmsg, &mut msg_prime);
         let mut v = Vec::new();
         v.resize(l, 0);
-        hkdf_expand(hash_func, &msg_prime, &info, &mut v);
-        self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v))
+        match h {
+            HashID::SHA256 => {
+                let hkdf = Hkdf::<Sha256>::new(Some(dst), &vmsg);
+                match hkdf.expand(&info, v.as_mut()) {
+                    Ok(_) => self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v)),
+                    Err(e) => panic!(e),
+                }
+            }
+            HashID::SHA384 => {
+                let hkdf = Hkdf::<Sha384>::new(Some(dst), &vmsg);
+                match hkdf.expand(&info, v.as_mut()) {
+                    Ok(_) => self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v)),
+                    Err(e) => panic!(e),
+                }
+            }
+            HashID::SHA512 => {
+                let hkdf = Hkdf::<Sha512>::new(Some(dst), &vmsg);
+                match hkdf.expand(&info, v.as_mut()) {
+                    Ok(_) => self.new(BigInt::from_bytes_be(num_bigint::Sign::Plus, &v)),
+                    Err(e) => panic!(e),
+                }
+            }
+        }
     }
 }

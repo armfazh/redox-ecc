@@ -3,8 +3,10 @@ use crate::num_bigint::BigInt;
 
 use criterion::{criterion_group, criterion_main, Benchmark, Criterion};
 
+use redox_ecc::h2c::EncodeToCurve;
 use redox_ecc::weierstrass;
 use redox_ecc::weierstrass::{P256, P384, P521};
+use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
 use redox_ecc::EllipticCurve;
 
 fn arith(c: &mut Criterion) {
@@ -22,5 +24,26 @@ fn arith(c: &mut Criterion) {
     }
 }
 
-criterion_group!(curve_bench, arith);
+fn h2c(c: &mut Criterion) {
+    let msg = "message to be hashed".as_bytes();
+    let dst = "domain separation tag".as_bytes();
+    for suite in vec![
+        P256_SHA256_SSWU_NU_,
+        P384_SHA512_SSWU_NU_,
+        P521_SHA512_SSWU_NU_,
+    ] {
+        let h = suite.get(dst);
+        c.bench(
+            format!("{}", suite).as_str(),
+            Benchmark::new("hash", move |b| {
+                b.iter(|| {
+                    h.hash(msg);
+                })
+            })
+            .sample_size(10),
+        );
+    }
+}
+
+criterion_group!(curve_bench, arith, h2c);
 criterion_main!(curve_bench);

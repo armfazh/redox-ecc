@@ -1,6 +1,5 @@
 extern crate num_bigint;
 
-use crypto::sha2::Sha256;
 use std::convert::From;
 
 // use num_bigint::BigUint;
@@ -17,7 +16,7 @@ use redox_ecc::weierstrass;
 // use redox_ecc::h2c;
 use redox_ecc::h2c::EncodeToCurve;
 
-use redox_ecc::h2c::HashToField;
+use redox_ecc::h2c::{HashID, HashToField};
 use redox_ecc::weierstrass::P256;
 use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
 use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
@@ -79,30 +78,31 @@ fn main() {
     let msg = "This is a message string".as_bytes();
     let dst = "QUUX-V01-CS02".as_bytes();
 
-    let a = f.hash(Sha256::new(), msg, dst, 0u8, 48usize);
+    let a = f.hash(HashID::SHA256, msg, dst, 0u8, 48usize);
     println!("a: {} ", f);
     println!("a: {} ", a);
 
-    macro_rules! x {
-        ($suite:ident ) => {
-            let enc = $suite.new(dst);
-            let mut p = enc.hash(msg, dst);
-            p.normalize();
-            println!("enc: {} {} ", $suite, p);
-        };
+    let suites = vec![
+        P256_SHA256_SSWU_NU_,
+        P256_SHA256_SSWU_RO_,
+        P256_SHA256_SVDW_NU_,
+        P256_SHA256_SVDW_RO_,
+        P384_SHA512_SSWU_NU_,
+        P384_SHA512_SSWU_RO_,
+        P384_SHA512_SVDW_NU_,
+        P384_SHA512_SVDW_RO_,
+        P521_SHA512_SSWU_NU_,
+        P521_SHA512_SSWU_RO_,
+        P521_SHA512_SVDW_NU_,
+        P521_SHA512_SVDW_RO_,
+    ];
+
+    for suite in suites {
+        let enc = suite.get(dst);
+        let mut p = enc.hash(msg);
+        p.normalize();
+        println!("enc: {} {} ", suite, p);
     }
-    x!(P256_SHA256_SSWU_NU_);
-    x!(P256_SHA256_SSWU_RO_);
-    x!(P256_SHA256_SVDW_NU_);
-    x!(P256_SHA256_SVDW_RO_);
-    x!(P384_SHA512_SSWU_NU_);
-    x!(P384_SHA512_SSWU_RO_);
-    x!(P384_SHA512_SVDW_NU_);
-    x!(P384_SHA512_SVDW_RO_);
-    x!(P521_SHA512_SSWU_NU_);
-    x!(P521_SHA512_SSWU_RO_);
-    x!(P521_SHA512_SVDW_NU_);
-    x!(P521_SHA512_SVDW_RO_);
 
     // println!("N: {} ", P256);
     // let gg = ec.get_generator();
