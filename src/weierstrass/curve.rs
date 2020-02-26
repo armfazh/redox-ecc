@@ -9,48 +9,49 @@ use num_traits::identities::Zero;
 
 use std::str::FromStr;
 
-use crate::field::{FpElt, PrimeField};
+use crate::do_if_eq;
+use crate::ellipticcurve::EllipticCurve;
+use crate::field::{Field, FromFactory};
+use crate::primefield::{Fp, FpElt};
 use crate::weierstrass::point::{Point, ProyCoordinates};
 use crate::weierstrass::scalar::Scalar;
 use crate::weierstrass::CurveID;
-use crate::{do_if_eq, FromFactory};
-use crate::{EllipticCurve, Field};
 
 /// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
 ///
 /// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct Curve {
-    pub(super) f: PrimeField,
-    pub(super) a: FpElt,
-    pub(super) b: FpElt,
-    pub(super) r: BigUint,
-    gx: FpElt,
-    gy: FpElt,
-    h: BigUint,
+    pub f: Fp,
+    pub a: FpElt,
+    pub b: FpElt,
+    pub r: BigUint,
+    pub gx: FpElt,
+    pub gy: FpElt,
+    pub h: BigUint,
 }
 
 impl EllipticCurve for Curve {
-    type F = PrimeField;
-    type P = Point;
+    type F = Fp;
+    type Scalar = Scalar;
+    type Point = Point;
     type Coordinates = ProyCoordinates;
-    type S = Scalar;
-    fn new_point(&self, c: Self::Coordinates) -> Self::P {
+    fn new_point(&self, c: Self::Coordinates) -> Self::Point {
         let e = self.clone();
         let pt = Point { e, c };
-        do_if_eq!(self.is_on_curve(&pt), true, pt, ERR_ECC_NEW)
+        do_if_eq!(self.is_on_curve(&pt), pt, ERR_ECC_NEW)
     }
-    fn new_scalar(&self, k: BigInt) -> Self::S {
+    fn new_scalar(&self, k: BigInt) -> Self::Scalar {
         Scalar::new(k, &self.r)
     }
-    fn identity(&self) -> Self::P {
+    fn identity(&self) -> Self::Point {
         self.new_point(ProyCoordinates {
             x: self.f.zero(),
             y: self.f.one(),
             z: self.f.zero(),
         })
     }
-    fn is_on_curve(&self, p: &Self::P) -> bool {
+    fn is_on_curve(&self, p: &Self::Point) -> bool {
         let p = &p.c;
         let x3 = &p.x * &(&p.x ^ 2u32);
         let bz = &self.b * &p.z;
@@ -63,13 +64,13 @@ impl EllipticCurve for Curve {
     fn get_order(&self) -> BigUint {
         self.r.clone()
     }
-    fn get_field(&self) -> Self::F {
-        self.f.clone()
-    }
+    // fn get_field(&self) -> Self::F {
+    //     self.f.clone()
+    // }
     fn get_cofactor(&self) -> BigInt {
         self.h.to_bigint().unwrap()
     }
-    fn get_generator(&self) -> Self::P {
+    fn get_generator(&self) -> Self::Point {
         self.new_point(ProyCoordinates {
             x: self.gx.clone(),
             y: self.gy.clone(),
@@ -81,7 +82,7 @@ impl EllipticCurve for Curve {
 impl std::convert::From<CurveID> for Curve {
     fn from(id: CurveID) -> Curve {
         let params = id.0;
-        let f = PrimeField::create(BigUint::from_str(params.p).unwrap());
+        let f = Fp::new(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
         let b = f.from(params.b);
         let gx = f.from(params.gx);

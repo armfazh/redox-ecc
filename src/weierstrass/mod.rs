@@ -1,6 +1,7 @@
 //! This is documentation for the `weierstrass` module.
 //!
 //! The Weierstrass module is meant to be used for bar.
+
 mod curve;
 mod h2c;
 mod point;
@@ -12,7 +13,7 @@ pub use crate::weierstrass::h2c::{
     P521_SHA512_SSWU_NU_, P521_SHA512_SSWU_RO_, P521_SHA512_SVDW_NU_, P521_SHA512_SVDW_RO_,
     SECP256K1_SHA256_SSWU_NU_, SECP256K1_SHA256_SSWU_RO_,
 };
-pub use crate::weierstrass::point::{Point, ProyCoordinates, XPoint};
+pub use crate::weierstrass::point::{Point, ProyCoordinates};
 pub use crate::weierstrass::scalar::Scalar;
 
 #[derive(Copy, Clone)]

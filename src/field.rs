@@ -4,13 +4,7 @@
 
 use num_bigint::BigInt;
 
-use crate::make_trait;
-
-make_trait!(binary, Add, AddRef);
-make_trait!(binary, Sub, SubRef);
-make_trait!(binary, Mul, MulRef);
-make_trait!(binary, Div, DivRef);
-make_trait!(unary, Neg, NegRef);
+use crate::ops::{AddRef, DivRef, MulRef, NegRef, SubRef};
 
 pub trait FromFactory<T: Sized>: Field {
     fn from(&self, _: T) -> <Self as Field>::Elt;
@@ -55,13 +49,12 @@ pub trait CMov: Clone {
     }
 }
 
+use std::ops::{Add, Div, Mul, Sub};
+
 /// FieldElement is an element of a finite field.
-pub trait FieldElement
-where
-    for<'a> Self:
-        AddRef<'a> + SubRef<'a> + MulRef<'a> + DivRef<'a> + NegRef<'a> + Sqrt + CMov + Sgn0,
-{
-}
+pub trait FieldElement {}
+impl<T> FieldElement for T where T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> {}
+// pub trait FieldElement: AddRef + SubRef + MulRef + DivRef + NegRef + Sqrt + CMov + Sgn0 {}
 
 /// Field is a fabric to instante a finite field.
 pub trait Field {

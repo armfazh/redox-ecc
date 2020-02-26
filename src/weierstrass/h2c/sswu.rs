@@ -1,11 +1,10 @@
 use num_traits::identities::Zero;
 
-use crate::field::FpElt;
+use crate::ellipticcurve::EllipticCurve;
+use crate::field::{CMov, Field, FromFactory, Sgn0, Sgn0Endianness, Sqrt};
 use crate::h2c::MapToCurve;
+use crate::primefield::FpElt;
 use crate::weierstrass::{Curve, ProyCoordinates};
-use crate::{CMov, Field, Sgn0};
-use crate::{EllipticCurve, Sgn0Choice};
-use crate::{FromFactory, Sqrt};
 
 #[derive(Clone)]
 pub struct SSWU {
@@ -13,11 +12,11 @@ pub struct SSWU {
     c1: FpElt,
     c2: FpElt,
     z: FpElt,
-    sgn0: Sgn0Choice,
+    sgn0: Sgn0Endianness,
 }
 
 impl SSWU {
-    pub fn new(e: Curve, z: FpElt, sgn0: Sgn0Choice) -> SSWU {
+    pub fn new(e: Curve, z: FpElt, sgn0: Sgn0Endianness) -> SSWU {
         if !SSWU::verify(&e, &z) {
             panic!("wrong input parameters")
         } else {
@@ -27,11 +26,10 @@ impl SSWU {
         }
     }
     fn verify(e: &Curve, z: &FpElt) -> bool {
-        let f = e.get_field();
         let precond1 = !e.a.is_zero(); //              A != 0
         let precond2 = !e.b.is_zero(); //              B != 0
         let cond1 = !z.is_square(); //                 Z is non-square
-        let cond2 = *z != f.from(-1); //               Z != -1
+        let cond2 = *z != e.f.from(-1); //               Z != -1
         let x = &e.b * &(1u32 / &(z * &e.a)); //       B/(Z*A)
         let gx = &x * &((&x ^ 2u32) + &e.a) + &e.b; // g(B/(Z*A))
         let cond4 = gx.is_square(); //                 g(B/(Z*A)) is square
@@ -44,8 +42,8 @@ impl MapToCurve for SSWU {
     fn map(
         &self,
         u: <<Self::E as EllipticCurve>::F as Field>::Elt,
-    ) -> <Self::E as EllipticCurve>::P {
-        let f = self.e.get_field();
+    ) -> <Self::E as EllipticCurve>::Point {
+        let f = &self.e.f;
         let cmov = FpElt::cmov;
         let s = self.sgn0;
         let mut t1 = &u ^ 2u32; //          0.   t1 = u^2

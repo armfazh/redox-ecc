@@ -17,6 +17,10 @@ harness = false
 name = "curve"
 harness = false
 
+[[bench]]
+name = "h2c"
+harness = false
+
 [dependencies]
 impl_ops = "0.1.1"
 num-bigint = "0.2.6"

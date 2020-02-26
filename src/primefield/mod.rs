@@ -2,13 +2,13 @@
 //!
 //! The primefield module is meant to be used for bar.
 
+use hkdf::Hkdf;
 use impl_ops::impl_op_ex;
 use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
-// use hkdf::Hkdf;
-// use sha2::{Sha256, Sha384, Sha512};
+use sha2::{Sha256, Sha384, Sha512};
 
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -17,8 +17,9 @@ use std::ops::{BitXor, Div};
 use std::rc::Rc;
 
 use crate::do_if_eq;
-use crate::field::{CMov, Field, FromFactory, IntoFactory, Sgn0, Sqrt};
-// use crate::h2c::{HashID, HashToField};
+use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};
+use crate::h2c::{HashID, HashToField};
+use crate::ops::{AddRef, DivRef, MulRef, NegRef, SubRef};
 
 struct Params {
     p: BigInt,
@@ -133,15 +134,8 @@ impl_op_ex!(-|a: &FpElt, b: &FpElt| -> FpElt {
 impl_op_ex!(*|a: &FpElt, b: &FpElt| -> FpElt {
     do_if_eq!(a.f == b.f, a.red(&a.n * &b.n), ERR_BIN_OP)
 });
-impl_op_ex!(/|a: &FpElt, b: &FpElt| -> FpElt { a * (1u32 / b) });
+impl_op_ex!(/|a: &FpElt, b: &FpElt| -> FpElt { a * b.inv_mod() });
 impl_op_ex!(-|a: &FpElt| -> FpElt { a.red(-&a.n) });
-
-impl<'a> crate::field::AddRef<'a> for FpElt {}
-impl<'a> crate::field::SubRef<'a> for FpElt {}
-impl<'a> crate::field::MulRef<'a> for FpElt {}
-impl<'a> crate::field::DivRef<'a> for FpElt {}
-impl<'a> crate::field::NegRef<'a> for FpElt {}
-impl crate::field::FieldElement for FpElt {}
 
 impl<'a> Div<&'a FpElt> for u32 {
     type Output = FpElt;
@@ -303,23 +297,23 @@ impl std::fmt::Display for Fp {
     }
 }
 
-// impl HashToField<Fp> for Fp {
-//     fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> FpElt {
-//         let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
-//         let mut vmsg = msg.to_vec();
-//         vmsg.push(0u8);
-//         let mut v = Vec::new();
-//         v.resize(l, 0);
-//         match match h {
-//             HashID::SHA256 => Hkdf::<Sha256>::new(Some(dst), &vmsg).expand(&info, &mut v),
-//             HashID::SHA384 => Hkdf::<Sha384>::new(Some(dst), &vmsg).expand(&info, &mut v),
-//             HashID::SHA512 => Hkdf::<Sha512>::new(Some(dst), &vmsg).expand(&info, &mut v),
-//         } {
-//             Ok(_) => self.new(BigInt::from_bytes_be(Sign::Plus, &v)),
-//             Err(e) => panic!(e),
-//         }
-//     }
-// }
+impl HashToField<Fp> for Fp {
+    fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> FpElt {
+        let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
+        let mut vmsg = msg.to_vec();
+        vmsg.push(0u8);
+        let mut v = Vec::new();
+        v.resize(l, 0);
+        match match h {
+            HashID::SHA256 => Hkdf::<Sha256>::new(Some(dst), &vmsg).expand(&info, &mut v),
+            HashID::SHA384 => Hkdf::<Sha384>::new(Some(dst), &vmsg).expand(&info, &mut v),
+            HashID::SHA512 => Hkdf::<Sha512>::new(Some(dst), &vmsg).expand(&info, &mut v),
+        } {
+            Ok(_) => self.elt(BigInt::from_bytes_be(Sign::Plus, &v)),
+            Err(e) => panic!(e),
+        }
+    }
+}
 
 const ERR_BIN_OP: &str = "elements of different fields";
 const ERR_EXP_SQR_OP: &str = "exponent must be 2u32";

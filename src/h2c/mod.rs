@@ -1,5 +1,5 @@
-use crate::EllipticCurve;
-use crate::Field;
+use crate::ellipticcurve::EllipticCurve;
+use crate::field::Field;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum HashID {
@@ -20,46 +20,47 @@ pub trait MapToCurve {
     fn map(
         &self,
         _: <<Self::E as EllipticCurve>::F as Field>::Elt,
-    ) -> <Self::E as EllipticCurve>::P;
+    ) -> <Self::E as EllipticCurve>::Point;
 }
 
 /// EncodeToCurve is a function that outputs a point on an elliptic curve from an
 /// arbitrary string.
 pub trait EncodeToCurve {
     type E: EllipticCurve;
-    fn hash(&self, msg: &[u8]) -> <Self::E as EllipticCurve>::P;
+    fn hash(&self, msg: &[u8]) -> <Self::E as EllipticCurve>::Point;
 }
 
-pub struct Encoding<E>
+pub struct Encoding<EE>
 where
-    E: EllipticCurve,
+    EE: EllipticCurve,
 {
     pub dst: Vec<u8>,
-    pub e: E,
     pub h: HashID,
-    pub map_to_curve: Box<dyn MapToCurve<E = E> + 'static>,
-    pub hash_to_field: Box<dyn HashToField<<E as EllipticCurve>::F> + 'static>,
-    pub cofactor: <E as EllipticCurve>::S,
+    pub map_to_curve: Box<dyn MapToCurve<E = EE> + 'static>,
+    pub hash_to_field: Box<dyn HashToField<<EE as EllipticCurve>::F> + 'static>,
+    pub cofactor: <EE as EllipticCurve>::Scalar,
     pub l: usize,
     pub ro: bool,
 }
 
-impl<E> EncodeToCurve for Encoding<E>
+impl<EE> EncodeToCurve for Encoding<EE>
 where
-    E: EllipticCurve,
+    EE: EllipticCurve,
 {
-    type E = E;
-    fn hash(&self, msg: &[u8]) -> <E as EllipticCurve>::P {
+    type E = EE;
+    fn hash(&self, msg: &[u8]) -> <Self::E as EllipticCurve>::Point {
         let p = if self.ro {
             let u0 = self.hash_to_field.hash(self.h, msg, &self.dst, 0u8, self.l);
             let u1 = self.hash_to_field.hash(self.h, msg, &self.dst, 1u8, self.l);
             let p0 = self.map_to_curve.map(u0);
             let p1 = self.map_to_curve.map(u1);
+            // let p2 = p1 + &p0;
             p0 + p1
         } else {
             let u = self.hash_to_field.hash(self.h, msg, &self.dst, 2u8, self.l);
             self.map_to_curve.map(u)
         };
-        p * self.cofactor.clone()
+        p
+        // p  self.cofactor
     }
 }

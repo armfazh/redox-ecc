@@ -2,18 +2,18 @@
 //!
 //! The curve module is meant to be used for bar.
 
-extern crate num_bigint;
+use impl_ops::impl_op_ex;
 use num_bigint::ToBigInt;
-
 use num_traits::identities::{One, Zero};
 
-use std::ops::{Add, Mul, Neg};
+use std::ops;
+use std::ops::Mul;
 
-use crate::field::FpElt;
+use crate::do_if_eq;
+use crate::ellipticcurve::EllipticCurve;
+use crate::primefield::FpElt;
 use crate::weierstrass::curve::Curve;
 use crate::weierstrass::scalar::Scalar;
-use crate::EllipticCurve;
-use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
@@ -38,7 +38,7 @@ impl Point {
     pub fn is_identity(&self) -> bool {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
     }
-    fn core_neg(&self) -> Point {
+    fn core_neg(&self) -> <Curve as EllipticCurve>::Point {
         self.e.new_point(ProyCoordinates {
             x: self.c.x.clone(),
             y: -&self.c.y,
@@ -48,7 +48,7 @@ impl Point {
     /// core_add implements complete addition formulas for prime order groups.
     // Reference: "Complete addition formulas for prime order elliptic curves" by
     // Costello-Renes-Batina. [Alg.1] (eprint.iacr.org/2015/1060).
-    fn core_add(&self, p: &Point) -> Point {
+    fn core_add(&self, p: &<Curve as EllipticCurve>::Point) -> <Curve as EllipticCurve>::Point {
         let a = &self.e.a;
         let b3 = &self.e.b + &self.e.b + &self.e.b;
         let (x1, x2) = (&self.c.x, &p.c.x);
@@ -104,7 +104,7 @@ impl Point {
     }
     /// core_mul implements the double&add Scalar multiplication method.
     /// This function run in non-constant time.
-    fn core_mul(&self, k: &Scalar) -> Point {
+    fn core_mul(&self, k: &Scalar) -> <Curve as EllipticCurve>::Point {
         let mut q = self.e.identity();
         for ki in k.iter_lr() {
             q = &q + &q;
@@ -131,7 +131,7 @@ impl<'a, 'b> Mul<&'b Scalar> for &'a Point {
     #[inline]
     fn mul(self, other: &Scalar) -> Self::Output {
         let r = self.e.r.to_bigint().unwrap();
-        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
+        do_if_eq!(r == other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
 impl<'a> Mul<&'a Scalar> for Point {
@@ -139,7 +139,7 @@ impl<'a> Mul<&'a Scalar> for Point {
     #[inline]
     fn mul(self, other: &'a Scalar) -> Self::Output {
         let r = self.e.r.to_bigint().unwrap();
-        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
+        do_if_eq!(r == other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
 impl Mul<Scalar> for Point {
@@ -147,17 +147,21 @@ impl Mul<Scalar> for Point {
     #[inline]
     fn mul(self, other: Scalar) -> Self::Output {
         let r = self.e.r.to_bigint().unwrap();
-        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
+        do_if_eq!(r == other.r, self.core_mul(&other), ERR_MUL_OP)
     }
 }
-const ERR_MUL_OP: &str = "Scalar don't match with point";
-const ERR_ADD_OP: &str = "points of different curves";
 
-impl_binary_op!(Point, Add, add, core_add, e, ERR_ADD_OP);
-impl_unary_op!(Point, Neg, neg, core_neg);
+impl_op_ex!(+|a: &Point , b: &Point | -> Point  {
+    do_if_eq!(a.e == b.e, a.core_add(b), ERR_ADD_OP)
+});
+impl_op_ex!(-|a: &Point, b: &Point| -> Point { a + (-b) });
+impl_op_ex!(-|a: &Point| -> Point { a.core_neg() });
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "\nx: {}\ny: {}\nz: {}", self.c.x, self.c.y, self.c.z)
     }
 }
+
+const ERR_MUL_OP: &str = "Scalar don't match with point";
+const ERR_ADD_OP: &str = "points of different curves";

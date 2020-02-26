@@ -1,10 +1,11 @@
 mod sswu;
 mod svdw;
 
+use crate::ellipticcurve::EllipticCurve;
+use crate::field::{FromFactory, Sgn0Endianness};
 use crate::h2c::{EncodeToCurve, Encoding, HashID, MapToCurve};
 use crate::weierstrass::{Curve, CurveID};
 use crate::weierstrass::{P256, P384, P521, SECP256K1};
-use crate::{EllipticCurve, FromFactory, Sgn0Choice};
 use sswu::SSWU;
 use svdw::SVDW;
 
@@ -23,7 +24,7 @@ pub struct Suite {
     l: usize,
     z: i32,
     ro: bool,
-    s: Sgn0Choice,
+    s: Sgn0Endianness,
 }
 
 impl Suite {
@@ -32,14 +33,12 @@ impl Suite {
         let dst = dst.to_vec();
         let e = Curve::from(self.curve);
         let cofactor = e.new_scalar(e.get_cofactor());
-        let f = e.get_field();
         let map_to_curve: Box<dyn MapToCurve<E = Curve>> = match self.map {
-            MapID::SSWU => Box::new(SSWU::new(e.clone(), f.from(self.z), self.s)),
-            MapID::SVDW => Box::new(SVDW::new(e.clone(), f.from(self.z), self.s)),
+            MapID::SSWU => Box::new(SSWU::new(e.clone(), e.f.from(self.z), self.s)),
+            MapID::SVDW => Box::new(SVDW::new(e.clone(), e.f.from(self.z), self.s)),
         };
         Encoding {
-            e,
-            hash_to_field: Box::new(f),
+            hash_to_field: Box::new(e.f),
             map_to_curve,
             dst,
             cofactor,
@@ -59,7 +58,7 @@ impl std::fmt::Display for Suite {
 pub static P256_SHA256_SSWU_NU_: Suite = Suite {
     name: "P256-SHA256-SSWU-NU-",
     curve: P256,
-    s: Sgn0Choice::Sgn0LE,
+    s: Sgn0Endianness::LittleEndian,
     h: HashID::SHA256,
     map: MapID::SSWU,
     z: -10,
@@ -77,7 +76,7 @@ pub static P256_SHA256_SVDW_NU_: Suite = Suite {
     curve: P256,
     h: HashID::SHA256,
     map: MapID::SVDW,
-    s: Sgn0Choice::Sgn0LE,
+    s: Sgn0Endianness::LittleEndian,
     z: -3,
     l: 48,
     ro: false,
@@ -91,7 +90,7 @@ pub static P256_SHA256_SVDW_RO_: Suite = Suite {
 pub static P384_SHA512_SSWU_NU_: Suite = Suite {
     name: "P384-SHA512-SSWU-NU-",
     curve: P384,
-    s: Sgn0Choice::Sgn0LE,
+    s: Sgn0Endianness::LittleEndian,
     h: HashID::SHA512,
     map: MapID::SSWU,
     z: -12,
@@ -109,7 +108,7 @@ pub static P384_SHA512_SVDW_NU_: Suite = Suite {
     curve: P384,
     h: HashID::SHA512,
     map: MapID::SVDW,
-    s: Sgn0Choice::Sgn0LE,
+    s: Sgn0Endianness::LittleEndian,
     z: -1,
     l: 72,
     ro: false,
@@ -123,7 +122,7 @@ pub static P384_SHA512_SVDW_RO_: Suite = Suite {
 pub static P521_SHA512_SSWU_NU_: Suite = Suite {
     name: "P521-SHA512-SSWU-NU-",
     curve: P521,
-    s: Sgn0Choice::Sgn0LE,
+    s: Sgn0Endianness::LittleEndian,
     h: HashID::SHA512,
     map: MapID::SSWU,
     z: -4,
@@ -141,7 +140,7 @@ pub static P521_SHA512_SVDW_NU_: Suite = Suite {
     curve: P521,
     h: HashID::SHA512,
     map: MapID::SVDW,
-    s: Sgn0Choice::Sgn0LE,
+    s: Sgn0Endianness::LittleEndian,
     z: 1,
     l: 96,
     ro: false,
@@ -155,7 +154,7 @@ pub static P521_SHA512_SVDW_RO_: Suite = Suite {
 pub static SECP256K1_SHA256_SSWU_NU_: Suite = Suite {
     name: "secp256k1-SHA256-SSWU-NU-",
     curve: SECP256K1,
-    s: Sgn0Choice::Sgn0LE,
+    s: Sgn0Endianness::LittleEndian,
     h: HashID::SHA256,
     map: MapID::SSWU,
     z: -11,

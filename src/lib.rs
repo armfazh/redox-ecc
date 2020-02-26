@@ -10,19 +10,20 @@ extern crate doc_comment;
 #[macro_use]
 extern crate impl_ops;
 
-#[macro_use]
 mod macros;
 
-// pub mod ellipticcurve;
-pub mod field;
+pub mod ops;
 
+pub mod field;
 pub mod primefield;
 
-// pub mod h2c;
+pub mod ellipticcurve;
+pub mod h2c;
+pub mod weierstrass;
+
 //
 // pub mod edwards;
 // pub mod montgomery;
-// pub mod weierstrass;
 
 #[cfg(test)]
 mod tests;

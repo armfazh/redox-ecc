@@ -13,36 +13,3 @@ macro_rules! do_if_eq {
         }
     };
 }
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! make_trait {
-    (binary, $trait:ident, $name:ident) => {
-        doc_comment!(
-            concat!(
-                stringify!($name),
-                " with support for references as parameters."
-            ),
-            pub trait $name<'a>: Sized + std::ops::$trait<Output = Self>
-            where
-                &'a Self: 'a + std::ops::$trait<Self, Output = Self>,
-                for<'b> Self: std::ops::$trait<&'b Self, Output = Self>,
-                for<'b> &'a Self: std::ops::$trait<&'b Self, Output = Self>,
-            {
-            }
-        );
-    };
-    (unary, $trait:ident, $name:ident) => {
-        doc_comment!(
-            concat!(
-                stringify!($name),
-                " with support for references as parameters."
-            ),
-            pub trait $name<'a>: Sized + std::ops::$trait<Output = Self>
-            where
-                &'a Self: 'a + std::ops::$trait<Output = Self>,
-            {
-            }
-        );
-    };
-}
