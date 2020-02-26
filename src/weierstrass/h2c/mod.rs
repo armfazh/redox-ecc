@@ -31,6 +31,7 @@ impl Suite {
         let (h, l, ro) = (self.h, self.l, self.ro);
         let dst = dst.to_vec();
         let e = Curve::from(self.curve);
+        let cofactor = e.new_scalar(e.get_cofactor());
         let f = e.get_field();
         let map_to_curve: Box<dyn MapToCurve<E = Curve>> = match self.map {
             MapID::SSWU => Box::new(SSWU::new(e.clone(), f.from(self.z), self.s)),
@@ -38,8 +39,10 @@ impl Suite {
         };
         Encoding {
             e,
-            dst,
+            hash_to_field: Box::new(f),
             map_to_curve,
+            dst,
+            cofactor,
             h,
             l,
             ro,

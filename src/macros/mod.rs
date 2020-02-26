@@ -5,8 +5,8 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! do_if_eq {
-    ($x:expr, $y:expr, $body:stmt, $error: expr) => {
-        if $x == $y {
+    ($cond:expr, $body:stmt, $error: expr) => {
+        if $cond {
             $body
         } else {
             panic!($error)
@@ -16,57 +16,33 @@ macro_rules! do_if_eq {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! impl_unary_op {
-    ($target:ident,
-     $trait:ident,
-     $name:ident,
-     $method:ident) => {
-        impl<'a> $trait for &'a $target {
-            type Output = $target;
-            #[inline]
-            fn $name(self) -> Self::Output {
-                self.$method()
+macro_rules! make_trait {
+    (binary, $trait:ident, $name:ident) => {
+        doc_comment!(
+            concat!(
+                stringify!($name),
+                " with support for references as parameters."
+            ),
+            pub trait $name<'a>: Sized + std::ops::$trait<Output = Self>
+            where
+                &'a Self: 'a + std::ops::$trait<Self, Output = Self>,
+                for<'b> Self: std::ops::$trait<&'b Self, Output = Self>,
+                for<'b> &'a Self: std::ops::$trait<&'b Self, Output = Self>,
+            {
             }
-        }
-        impl $trait for $target {
-            type Output = $target;
-            #[inline]
-            fn $name(self) -> Self::Output {
-                self.$method()
-            }
-        }
+        );
     };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! impl_binary_op {
-    ($target:ident,
-     $trait:ident,
-     $name:ident,
-     $method:ident,
-     $field:ident,
-     $error:ident) => {
-        impl<'a, 'b> $trait<&'b $target> for &'a $target {
-            type Output = $target;
-            #[inline]
-            fn $name(self, other: &$target) -> Self::Output {
-                do_if_eq!(self.$field, other.$field, self.$method(&other), $error)
+    (unary, $trait:ident, $name:ident) => {
+        doc_comment!(
+            concat!(
+                stringify!($name),
+                " with support for references as parameters."
+            ),
+            pub trait $name<'a>: Sized + std::ops::$trait<Output = Self>
+            where
+                &'a Self: 'a + std::ops::$trait<Output = Self>,
+            {
             }
-        }
-        impl<'a> $trait<&'a $target> for $target {
-            type Output = $target;
-            #[inline]
-            fn $name(self, other: &'a Self) -> Self::Output {
-                do_if_eq!(self.$field, other.$field, self.$method(&other), $error)
-            }
-        }
-        impl $trait for $target {
-            type Output = $target;
-            #[inline]
-            fn $name(self, other: Self) -> Self::Output {
-                do_if_eq!(self.$field, other.$field, self.$method(&other), $error)
-            }
-        }
+        );
     };
 }

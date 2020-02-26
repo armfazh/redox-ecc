@@ -27,7 +27,7 @@ impl Scalar {
     }
 }
 
-impl crate::Scalar<Point> for Scalar {}
+impl crate::Scalar for Scalar {}
 
 impl Scalar {
     #[inline]

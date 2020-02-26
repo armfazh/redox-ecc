@@ -28,8 +28,6 @@ pub struct Point {
     pub(super) c: ProyCoordinates,
 }
 
-impl crate::Point for Point {}
-
 impl Point {
     pub fn normalize(&mut self) {
         let inv_z = 1u32 / &self.c.z;
@@ -89,16 +87,15 @@ impl Point {
         t1 = &t1 + &t2; // 29. t1 = t1 + t2
         t2 = &t0 - &t2; // 30. t2 = t0 - t2
         t2 = a * &t2; //   31. t2 =  a * t2
-        t4 = &t4 + &t2; // 32. t4 = t4 + t2
+        t4 = &t4 + t2; //  32. t4 = t4 + t2
         t0 = &t1 * &t4; // 33. t0 = t1 * t4
         y3 = y3 + &t0; //  34. Y3 = Y3 + t0
-        t0 = &t5 * &t4; // 35. t0 = t5 * t4
+        t0 = &t5 * t4; //  35. t0 = t5 * t4
         x3 = &t3 * &x3; // 36. X3 = t3 * X3
         x3 = x3 - &t0; //  37. X3 = X3 - t0
-        t0 = t3 * &t1; //  38. t0 = t3 * t1
+        t0 = t3 * t1; //   38. t0 = t3 * t1
         z3 = t5 * z3; //   39. Z3 = t5 * Z3
         z3 = z3 + t0; //   40. Z3 = Z3 + t0
-                      // self.e.new_point(&[x3, y3, z3])
         self.e.new_point(ProyCoordinates {
             x: x3,
             y: y3,

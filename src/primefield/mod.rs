@@ -1,23 +1,24 @@
-//! This is documentation for the `field` module.
+//! This is documentation for the `primefield` module.
 //!
-//! The field module is meant to be used for bar.
+//! The primefield module is meant to be used for bar.
 
-use hkdf::Hkdf;
+use impl_ops::impl_op_ex;
 use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
-use sha2::{Sha256, Sha384, Sha512};
+// use hkdf::Hkdf;
+// use sha2::{Sha256, Sha384, Sha512};
 
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::ops::BitXor;
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops;
+use std::ops::{BitXor, Div};
 use std::rc::Rc;
 
-use crate::h2c::{HashID, HashToField};
-use crate::{do_if_eq, impl_binary_op, impl_unary_op};
-use crate::{CMov, Field};
+use crate::do_if_eq;
+use crate::field::{CMov, Field, FromFactory, IntoFactory, Sgn0, Sqrt};
+// use crate::h2c::{HashID, HashToField};
 
 struct Params {
     p: BigInt,
@@ -30,14 +31,20 @@ impl PartialEq for Params {
     }
 }
 
+/// Fp implements a base field of prime characteristic.
 #[derive(Clone, PartialEq)]
-pub struct PrimeField(Rc<Params>);
+pub struct Fp(Rc<Params>);
 
-impl PrimeField {
-    pub fn create(p: BigUint) -> Self {
+impl Fp {
+    /// Use `new` to generate a prime field instance.
+    /// ```
+    ///   let f = Fp::new(BigUint::from(101));
+    /// ```
+    /// The `modulus` should be a prime number.
+    pub fn new(modulus: BigUint) -> Self {
         // TODO: verify whether p is prime.
-        let p = p.to_bigint().unwrap();
-        let f = PrimeField(Rc::new(Params {
+        let p = modulus.to_bigint().unwrap();
+        let f = Fp(Rc::new(Params {
             p,
             sqrt_precmp: RefCell::new(SqrtPrecmp::Empty),
         }));
@@ -46,60 +53,61 @@ impl PrimeField {
     }
 }
 
-#[derive(Clone, std::cmp::PartialEq)]
-pub struct FpElt {
-    n: BigInt,
-    f: Rc<Params>,
-}
-
-impl Field for PrimeField {
+impl Field for Fp {
     type Elt = FpElt;
-    fn new(&self, n: BigInt) -> Self::Elt {
+    fn elt(&self, n: BigInt) -> Self::Elt {
         let n = n.mod_floor(&self.0.p);
         let f = self.0.clone();
         FpElt { n, f }
     }
     fn zero(&self) -> Self::Elt {
-        self.new(BigInt::zero())
+        self.elt(BigInt::zero())
     }
     fn one(&self) -> Self::Elt {
-        self.new(BigInt::one())
+        self.elt(BigInt::one())
     }
 }
 
 macro_rules! impl_from_factory {
     ($target:ident, <$($other:ty)+> ) => {
      $(
-         impl crate::FromFactory<$other> for $target{
+         impl FromFactory<$other> for $target{
             fn from(&self, n: $other) -> <Self as Field>::Elt {
-                self.new(BigInt::from(n))
+                self.elt(BigInt::from(n))
             }
         }
     )+
     };
 }
 
-impl_from_factory!(PrimeField, <u8 u16 u32 u64 i8 i16 i32 i64>);
+impl_from_factory!(Fp, <u8 u16 u32 u64 i8 i16 i32 i64>);
 
 macro_rules! impl_into_factory {
     ($target:ident, <$($other:ty)+> ) => {
      $(
-         impl crate::IntoFactory<$target> for $other{
+         impl IntoFactory<$target> for $other{
             fn lift(&self, fab: $target) ->  <$target as Field>::Elt {
-                fab.new(BigInt::from(*self))
+                fab.elt(BigInt::from(*self))
             }
         }
     )+
     };
 }
 
-impl_into_factory!(PrimeField, <u8 u16 u32 u64 i8 i16 i32 i64>);
+impl_into_factory!(Fp, <u8 u16 u32 u64 i8 i16 i32 i64>);
 
-impl crate::FromFactory<&str> for PrimeField {
-    fn from(&self, s: &str) -> <Self as Field>::Elt {
+impl<'a> FromFactory<&'a str> for Fp {
+    fn from(&self, s: &'a str) -> <Self as Field>::Elt {
         use std::str::FromStr;
-        self.new(BigInt::from_str(s).unwrap())
+        self.elt(BigInt::from_str(s).unwrap())
     }
+}
+
+/// FpElt is an element of a prime field.
+#[derive(Clone, std::cmp::PartialEq)]
+pub struct FpElt {
+    n: BigInt,
+    f: Rc<Params>,
 }
 
 impl FpElt {
@@ -110,33 +118,36 @@ impl FpElt {
         FpElt { n, f }
     }
     #[inline]
-    fn neg_mod(&self) -> FpElt {
-        self.red(-&self.n)
-    }
-    #[inline]
-    fn add_mod(&self, other: &FpElt) -> FpElt {
-        self.red(&self.n + &other.n)
-    }
-    #[inline]
-    fn sub_mod(&self, other: &FpElt) -> FpElt {
-        self.red(&self.n - &other.n)
-    }
-    #[inline]
-    fn mul_mod(&self, other: &FpElt) -> FpElt {
-        self.red(&self.n * &other.n)
-    }
-    #[inline]
     fn inv_mod(&self) -> FpElt {
         let p_minus_2 = &self.f.p.to_biguint().unwrap() - 2u32;
         self ^ &p_minus_2
     }
 }
 
+impl_op_ex!(+|a: &FpElt, b: &FpElt| -> FpElt {
+    do_if_eq!(a.f == b.f, a.red(&a.n + &b.n), ERR_BIN_OP)
+});
+impl_op_ex!(-|a: &FpElt, b: &FpElt| -> FpElt {
+    do_if_eq!(a.f == b.f, a.red(&a.n - &b.n), ERR_BIN_OP)
+});
+impl_op_ex!(*|a: &FpElt, b: &FpElt| -> FpElt {
+    do_if_eq!(a.f == b.f, a.red(&a.n * &b.n), ERR_BIN_OP)
+});
+impl_op_ex!(/|a: &FpElt, b: &FpElt| -> FpElt { a * (1u32 / b) });
+impl_op_ex!(-|a: &FpElt| -> FpElt { a.red(-&a.n) });
+
+impl<'a> crate::field::AddRef<'a> for FpElt {}
+impl<'a> crate::field::SubRef<'a> for FpElt {}
+impl<'a> crate::field::MulRef<'a> for FpElt {}
+impl<'a> crate::field::DivRef<'a> for FpElt {}
+impl<'a> crate::field::NegRef<'a> for FpElt {}
+impl crate::field::FieldElement for FpElt {}
+
 impl<'a> Div<&'a FpElt> for u32 {
     type Output = FpElt;
     #[inline]
     fn div(self, other: &FpElt) -> Self::Output {
-        do_if_eq!(self, 1u32, other.inv_mod(), ERR_INV_OP)
+        do_if_eq!(self == 1u32, other.inv_mod(), ERR_INV_OP)
     }
 }
 
@@ -144,7 +155,7 @@ impl<'a> BitXor<u32> for &'a FpElt {
     type Output = FpElt;
     #[inline]
     fn bitxor(self, exp: u32) -> Self::Output {
-        do_if_eq!(exp, 2u32, self * self, ERR_EXP_SQR_OP)
+        do_if_eq!(exp == 2u32, self * self, ERR_EXP_SQR_OP)
     }
 }
 
@@ -152,7 +163,7 @@ impl<'a> BitXor<i32> for &'a FpElt {
     type Output = FpElt;
     #[inline]
     fn bitxor(self, exp: i32) -> Self::Output {
-        do_if_eq!(exp, -1i32, self.inv_mod(), ERR_EXP_INV_OP)
+        do_if_eq!(exp == -1i32, self.inv_mod(), ERR_EXP_INV_OP)
     }
 }
 
@@ -174,15 +185,7 @@ impl<'a, 'b> BitXor<&'b BigInt> for &'a FpElt {
     }
 }
 
-impl_binary_op!(FpElt, Add, add, add_mod, f, ERR_BIN_OP);
-impl_binary_op!(FpElt, Sub, sub, sub_mod, f, ERR_BIN_OP);
-impl_binary_op!(FpElt, Mul, mul, mul_mod, f, ERR_BIN_OP);
-impl_unary_op!(FpElt, Neg, neg, neg_mod);
-
-const ERR_BIN_OP: &str = "elements of different fields";
-const ERR_EXP_SQR_OP: &str = "exponent must be 2u32";
-const ERR_EXP_INV_OP: &str = "exponent must be -1i32";
-const ERR_INV_OP: &str = "numerator must be 1u32";
+impl CMov for FpElt {}
 
 #[derive(Clone, std::cmp::PartialEq)]
 enum SqrtPrecmp {
@@ -194,7 +197,7 @@ enum SqrtPrecmp {
 }
 
 impl SqrtPrecmp {
-    fn new(f: &PrimeField) -> SqrtPrecmp {
+    fn new(f: &Fp) -> SqrtPrecmp {
         let p = &f.0.p;
         let res = (p % 16u32).to_u32().unwrap();
         if 3u32 == (res % 4u32) {
@@ -221,7 +224,7 @@ impl SqrtPrecmp {
     }
 }
 
-impl crate::Sqrt for FpElt {
+impl Sqrt for FpElt {
     #[inline]
     fn is_square(&self) -> bool {
         let p_minus_1_div_2 = (&self.f.p - 1) >> 1usize;
@@ -249,7 +252,7 @@ impl crate::Sqrt for FpElt {
     }
 }
 
-impl crate::Sgn0 for FpElt {
+impl Sgn0 for FpElt {
     fn sgn0_be(&self) -> i32 {
         let p_minus_1_div_2: BigInt = (&self.f.p - 1) >> 1usize;
         match &p_minus_1_div_2.cmp(&self.n) {
@@ -260,17 +263,6 @@ impl crate::Sgn0 for FpElt {
     fn sgn0_le(&self) -> i32 {
         let res = (&self.n % 2u32).to_i32().unwrap();
         1i32 - 2i32 * res
-    }
-}
-
-impl crate::CMov for FpElt {
-    #[inline]
-    fn cmov(x: &FpElt, y: &FpElt, b: bool) -> FpElt {
-        if b {
-            y.clone()
-        } else {
-            x.clone()
-        }
     }
 }
 
@@ -305,26 +297,31 @@ impl std::fmt::Display for FpElt {
     }
 }
 
-impl std::fmt::Display for PrimeField {
+impl std::fmt::Display for Fp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "GF({})", &self.0.p)
     }
 }
 
-impl HashToField for PrimeField {
-    fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> <Self as Field>::Elt {
-        let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
-        let mut vmsg = msg.to_vec();
-        vmsg.push(0u8);
-        let mut v = Vec::new();
-        v.resize(l, 0);
-        match match h {
-            HashID::SHA256 => Hkdf::<Sha256>::new(Some(dst), &vmsg).expand(&info, &mut v),
-            HashID::SHA384 => Hkdf::<Sha384>::new(Some(dst), &vmsg).expand(&info, &mut v),
-            HashID::SHA512 => Hkdf::<Sha512>::new(Some(dst), &vmsg).expand(&info, &mut v),
-        } {
-            Ok(_) => self.new(BigInt::from_bytes_be(Sign::Plus, &v)),
-            Err(e) => panic!(e),
-        }
-    }
-}
+// impl HashToField<Fp> for Fp {
+//     fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> FpElt {
+//         let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
+//         let mut vmsg = msg.to_vec();
+//         vmsg.push(0u8);
+//         let mut v = Vec::new();
+//         v.resize(l, 0);
+//         match match h {
+//             HashID::SHA256 => Hkdf::<Sha256>::new(Some(dst), &vmsg).expand(&info, &mut v),
+//             HashID::SHA384 => Hkdf::<Sha384>::new(Some(dst), &vmsg).expand(&info, &mut v),
+//             HashID::SHA512 => Hkdf::<Sha512>::new(Some(dst), &vmsg).expand(&info, &mut v),
+//         } {
+//             Ok(_) => self.new(BigInt::from_bytes_be(Sign::Plus, &v)),
+//             Err(e) => panic!(e),
+//         }
+//     }
+// }
+
+const ERR_BIN_OP: &str = "elements of different fields";
+const ERR_EXP_SQR_OP: &str = "exponent must be 2u32";
+const ERR_EXP_INV_OP: &str = "exponent must be -1i32";
+const ERR_INV_OP: &str = "numerator must be 1u32";

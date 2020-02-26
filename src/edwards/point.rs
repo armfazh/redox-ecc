@@ -5,11 +5,10 @@ use num_traits::identities::{One, Zero};
 
 use std::ops::{Add, Mul, Neg};
 
-use crate::EllipticCurve;
-
 use crate::edwards::curve::Curve;
 use crate::edwards::scalar::Scalar;
 use crate::field::FpElt;
+use crate::EllipticCurve;
 use crate::{do_if_eq, impl_binary_op, impl_unary_op};
 
 #[derive(Clone)]
@@ -24,7 +23,6 @@ pub struct Point {
     pub(super) e: Curve,
     pub(super) c: ProyCoordinates,
 }
-impl crate::Point for Point {}
 
 impl Point {
     pub fn normalize(&mut self) {

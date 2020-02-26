@@ -1,8 +1,9 @@
 extern crate num_bigint;
 
+use num_traits::identities::Zero;
 use std::convert::From;
 
-// use num_bigint::BigUint;
+use num_bigint::BigUint;
 // use num_integer::Integer;
 
 // use redox_ecc::edwards;
@@ -11,22 +12,31 @@ use std::convert::From;
 // use redox_ecc::montgomery;
 // use redox_ecc::montgomery::CURVE25519;
 use redox_ecc::version;
-use redox_ecc::weierstrass;
-// use redox_ecc::weierstrass::ProyCoordinates;
-// use redox_ecc::h2c;
-use redox_ecc::h2c::EncodeToCurve;
+// use redox_ecc::weierstrass;
+// // use redox_ecc::weierstrass::ProyCoordinates;
+// // use redox_ecc::h2c;
+// use redox_ecc::h2c::EncodeToCurve;
+//
+// use redox_ecc::h2c::{HashID, HashToField};
+// use redox_ecc::weierstrass::{XPoint, P256};
+// use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
+// use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
+// use redox_ecc::weierstrass::{P256_SHA256_SVDW_NU_, P384_SHA512_SVDW_NU_, P521_SHA512_SVDW_NU_};
+// use redox_ecc::weierstrass::{P256_SHA256_SVDW_RO_, P384_SHA512_SVDW_RO_, P521_SHA512_SVDW_RO_};
+// use redox_ecc::EllipticCurve;
 
-use redox_ecc::h2c::{HashID, HashToField};
-use redox_ecc::weierstrass::P256;
-use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
-use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
-use redox_ecc::weierstrass::{P256_SHA256_SVDW_NU_, P384_SHA512_SVDW_NU_, P521_SHA512_SVDW_NU_};
-use redox_ecc::weierstrass::{P256_SHA256_SVDW_RO_, P384_SHA512_SVDW_RO_, P521_SHA512_SVDW_RO_};
-use redox_ecc::EllipticCurve;
+use redox_ecc::field::{FromFactory, Sqrt};
+use redox_ecc::primefield::{Fp, FpElt};
 
 fn main() {
     println!("{}", version());
     println!("Example!");
+
+    let f = Fp::new(BigUint::from(11u32));
+    let x = f.from(5);
+    let y = f.from(7);
+    let z = (x * y).is_square();
+    println!("z: {} ", FpElt::zero());
     /*
     let f = Fp::create(BigUint::from(53u64));
     let a = f.from(-3);
@@ -72,37 +82,51 @@ fn main() {
     // println!("N: {} ", &b);
     // println!("N: {} ", b.sqrt());
 
-    let ec = weierstrass::Curve::from(P256);
-    let f = ec.get_field();
+    // let ec = weierstrass::Curve::from(P256);
+    //
+    // let g0 = ec.get_generator();
+    // let g1 = ec.get_generator();
+    // let g2 = ec.get_generator();
+    // let g3 = ec.get_generator();
+    //
+    // let a = &g0 + &g1;
+    // println!("G: {} ", a);
+    // let b = g0 + &g1;
+    // println!("G: {} ", b);
+    // let c = &g1 + g2;
+    // println!("G: {} ", c);
+    // let d = g3 + g1;
+    // println!("G: {} ", d);
 
-    let msg = "This is a message string".as_bytes();
-    let dst = "QUUX-V01-CS02".as_bytes();
+    // let f = ec.get_field();
+    // let msg = "This is a message string".as_bytes();
+    // let dst = "QUUX-V01-CS02".as_bytes();
+    //
+    // let a = f.hash(HashID::SHA256, msg, dst, 0u8, 48usize);
+    // println!("a: {} ", f);
+    // println!("a: {} ", a);
 
-    let a = f.hash(HashID::SHA256, msg, dst, 0u8, 48usize);
-    println!("a: {} ", f);
-    println!("a: {} ", a);
-
-    let suites = vec![
-        P256_SHA256_SSWU_NU_,
-        P256_SHA256_SSWU_RO_,
-        P256_SHA256_SVDW_NU_,
-        P256_SHA256_SVDW_RO_,
-        P384_SHA512_SSWU_NU_,
-        P384_SHA512_SSWU_RO_,
-        P384_SHA512_SVDW_NU_,
-        P384_SHA512_SVDW_RO_,
-        P521_SHA512_SSWU_NU_,
-        P521_SHA512_SSWU_RO_,
-        P521_SHA512_SVDW_NU_,
-        P521_SHA512_SVDW_RO_,
-    ];
-
-    for suite in suites {
-        let enc = suite.get(dst);
-        let mut p = enc.hash(msg);
-        p.normalize();
-        println!("enc: {} {} ", suite, p);
-    }
+    // let suites = vec![
+    //     P256_SHA256_SSWU_NU_,
+    //     P256_SHA256_SSWU_RO_,
+    //     P256_SHA256_SVDW_NU_,
+    //     P256_SHA256_SVDW_RO_,
+    //     P384_SHA512_SSWU_NU_,
+    //     P384_SHA512_SSWU_RO_,
+    //     P384_SHA512_SVDW_NU_,
+    //     P384_SHA512_SVDW_RO_,
+    //     P521_SHA512_SSWU_NU_,
+    //     P521_SHA512_SSWU_RO_,
+    //     P521_SHA512_SVDW_NU_,
+    //     P521_SHA512_SVDW_RO_,
+    // ];
+    //
+    // for suite in suites {
+    //     let enc = suite.get(dst);
+    //     let mut p = enc.hash(msg);
+    //     p.normalize();
+    //     println!("enc: {} {} ", suite, p);
+    // }
 
     // println!("N: {} ", P256);
     // let gg = ec.get_generator();
