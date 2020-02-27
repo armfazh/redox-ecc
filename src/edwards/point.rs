@@ -1,15 +1,15 @@
-extern crate num_bigint;
+use impl_ops::impl_op_ex;
 use num_bigint::ToBigInt;
-
 use num_traits::identities::{One, Zero};
 
-use std::ops::{Add, Mul, Neg};
+use std::ops;
 
+use crate::do_if_eq;
 use crate::edwards::curve::Curve;
 use crate::edwards::scalar::Scalar;
-use crate::field::FpElt;
-use crate::EllipticCurve;
-use crate::{do_if_eq, impl_binary_op, impl_unary_op};
+use crate::ellipticcurve::{EcPoint, EllipticCurve};
+use crate::ops::ScMulRef;
+use crate::primefield::FpElt;
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
@@ -23,6 +23,9 @@ pub struct Point {
     pub(super) e: Curve,
     pub(super) c: ProyCoordinates,
 }
+
+impl EcPoint<Scalar> for Point {}
+impl ScMulRef<Scalar> for Point {}
 
 impl Point {
     pub fn normalize(&mut self) {
@@ -90,36 +93,18 @@ impl PartialEq for Point {
     }
 }
 
-impl<'a, 'b> Mul<&'b Scalar> for &'a Point {
-    type Output = Point;
-    #[inline]
-    fn mul(self, other: &Scalar) -> Self::Output {
-        let r = self.e.get_order().to_bigint().unwrap();
-        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
-    }
-}
-impl<'a> Mul<&'a Scalar> for Point {
-    type Output = Point;
-    #[inline]
-    fn mul(self, other: &'a Scalar) -> Self::Output {
-        let r = self.e.get_order().to_bigint().unwrap();
-        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
-    }
-}
-impl Mul<Scalar> for Point {
-    type Output = Point;
-    #[inline]
-    fn mul(self, other: Scalar) -> Self::Output {
-        let r = self.e.get_order().to_bigint().unwrap();
-        do_if_eq!(r, other.r, self.core_mul(&other), ERR_MUL_OP)
-    }
-}
+impl_op_ex!(+|a: &Point , b: &Point | -> Point  {
+    do_if_eq!(a.e == b.e, a.core_add(b), ERR_ADD_OP)
+});
+impl_op_ex!(-|a: &Point, b: &Point| -> Point { a + (-b) });
+impl_op_ex!(-|a: &Point| -> Point { a.core_neg() });
+impl_op_ex!(*|a: &Point, b: &Scalar| -> Point {
+    let r = a.e.r.to_bigint().unwrap();
+    do_if_eq!(r == b.r, a.core_mul(b), ERR_MUL_OP)
+});
 
 const ERR_MUL_OP: &str = "Scalar don't match with point";
 const ERR_ADD_OP: &str = "points of different curves";
-
-impl_binary_op!(Point, Add, add, core_add, e, ERR_ADD_OP);
-impl_unary_op!(Point, Neg, neg, core_neg);
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

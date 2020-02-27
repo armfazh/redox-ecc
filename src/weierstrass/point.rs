@@ -29,6 +29,7 @@ pub struct Point {
 }
 
 impl EcPoint<Scalar> for Point {}
+impl ScMulRef<Scalar> for Point {}
 
 impl Point {
     pub fn normalize(&mut self) {
@@ -137,8 +138,6 @@ impl_op_ex!(*|a: &Point, b: &Scalar| -> Point {
     let r = a.e.r.to_bigint().unwrap();
     do_if_eq!(r == b.r, a.core_mul(b), ERR_MUL_OP)
 });
-
-impl ScMulRef<Scalar> for Point {}
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

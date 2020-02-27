@@ -12,18 +12,16 @@ extern crate impl_ops;
 
 mod macros;
 
-pub mod ops;
-
 pub mod field;
+pub mod ops;
 pub mod primefield;
 
 pub mod ellipticcurve;
-pub mod h2c;
-pub mod weierstrass;
 
-//
-// pub mod edwards;
-// pub mod montgomery;
+pub mod edwards;
+pub mod h2c;
+pub mod montgomery;
+pub mod weierstrass;
 
 #[cfg(test)]
 mod tests;

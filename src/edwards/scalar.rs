@@ -2,16 +2,16 @@
 //!
 //! The scalar module is meant to be used for bar.
 
-extern crate num_bigint;
-extern crate num_integer;
-
+use impl_ops::impl_op_ex;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops;
+use std::ops::{Div, Mul};
 
+use crate::do_if_eq;
 use crate::edwards::point::Point;
-use crate::{do_if_eq, impl_binary_op, impl_unary_op};
+use crate::ellipticcurve::EcScalar;
 
 #[derive(Clone)]
 pub struct Scalar {
@@ -27,7 +27,7 @@ impl Scalar {
     }
 }
 
-impl crate::Scalar for Scalar {}
+impl EcScalar for Scalar {}
 
 impl Scalar {
     #[inline]
@@ -35,22 +35,6 @@ impl Scalar {
         let k = k.mod_floor(&self.r);
         let r = self.r.clone();
         Scalar { k, r }
-    }
-    #[inline]
-    fn neg_mod(&self) -> Self {
-        self.red(-&self.k)
-    }
-    #[inline]
-    fn add_mod(&self, other: &Scalar) -> Self {
-        self.red(&self.k + &other.k)
-    }
-    #[inline]
-    fn sub_mod(&self, other: &Scalar) -> Self {
-        self.red(&self.k - &other.k)
-    }
-    #[inline]
-    fn mul_mod(&self, other: &Scalar) -> Self {
-        self.red(&self.k * &other.k)
     }
     #[inline]
     fn inv_mod(&self) -> Scalar {
@@ -65,11 +49,23 @@ impl std::cmp::PartialEq for Scalar {
     }
 }
 
+impl_op_ex!(+|a: &Scalar, b: &Scalar| -> Scalar {
+    do_if_eq!(a.r == b.r, a.red(&a.k + &b.k), ERR_BIN_OP)
+});
+impl_op_ex!(-|a: &Scalar, b: &Scalar| -> Scalar {
+    do_if_eq!(a.r == b.r, a.red(&a.k - &b.k), ERR_BIN_OP)
+});
+impl_op_ex!(*|a: &Scalar, b: &Scalar| -> Scalar {
+    do_if_eq!(a.r == b.r, a.red(&a.k * &b.k), ERR_BIN_OP)
+});
+impl_op_ex!(/|a: &Scalar, b: &Scalar| -> Scalar { a * b.inv_mod() });
+impl_op_ex!(-|a: &Scalar| -> Scalar { a.red(-&a.k) });
+
 impl<'a> Div<&'a Scalar> for u32 {
     type Output = Scalar;
     #[inline]
     fn div(self, other: &Scalar) -> Self::Output {
-        do_if_eq!(self, 1u32, other.inv_mod(), ERR_INV_OP)
+        do_if_eq!(self == 1u32, other.inv_mod(), ERR_INV_OP)
     }
 }
 
@@ -138,16 +134,11 @@ impl Scalar {
     }
 }
 
-const ERR_BIN_OP: &str = "elements of different groups";
-const ERR_INV_OP: &str = "numerator must be 1u32";
-
-impl_binary_op!(Scalar, Add, add, add_mod, r, ERR_BIN_OP);
-impl_binary_op!(Scalar, Sub, sub, sub_mod, r, ERR_BIN_OP);
-impl_binary_op!(Scalar, Mul, mul, mul_mod, r, ERR_BIN_OP);
-impl_unary_op!(Scalar, Neg, neg, neg_mod);
-
 impl std::fmt::Display for Scalar {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.k)
     }
 }
+
+const ERR_BIN_OP: &str = "elements of different groups";
+const ERR_INV_OP: &str = "numerator must be 1u32";
