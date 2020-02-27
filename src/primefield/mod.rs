@@ -152,28 +152,18 @@ impl_op_ex!(*|a: &FpElt, b: &FpElt| -> FpElt {
 });
 impl_op_ex!(/|a: &FpElt, b: &FpElt| -> FpElt { a * b.inv_mod() });
 impl_op_ex!(-|a: &FpElt| -> FpElt { a.red(-&a.n) });
+impl_op_ex!(^|a: &FpElt, b: u32| -> FpElt {
+    do_if_eq!(b == 2u32, a * a, ERR_EXP_SQR_OP)
+});
+impl_op_ex!(^|a: &FpElt, b: i32| -> FpElt {
+    do_if_eq!(b == -1i32, a.inv_mod(), ERR_EXP_INV_OP)
+});
 
 impl<'a> Div<&'a FpElt> for u32 {
     type Output = FpElt;
     #[inline]
     fn div(self, other: &FpElt) -> Self::Output {
         do_if_eq!(self == 1u32, other.inv_mod(), ERR_INV_OP)
-    }
-}
-
-impl<'a> BitXor<u32> for &'a FpElt {
-    type Output = FpElt;
-    #[inline]
-    fn bitxor(self, exp: u32) -> Self::Output {
-        do_if_eq!(exp == 2u32, self * self, ERR_EXP_SQR_OP)
-    }
-}
-
-impl<'a> BitXor<i32> for &'a FpElt {
-    type Output = FpElt;
-    #[inline]
-    fn bitxor(self, exp: i32) -> Self::Output {
-        do_if_eq!(exp == -1i32, self.inv_mod(), ERR_EXP_INV_OP)
     }
 }
 

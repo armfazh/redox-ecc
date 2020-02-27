@@ -19,15 +19,18 @@ use redox_ecc::weierstrass;
 //
 // use redox_ecc::h2c::{HashID, HashToField};
 use redox_ecc::ellipticcurve::EllipticCurve;
+use redox_ecc::field::{FromFactory, Sqrt};
 use redox_ecc::h2c::EncodeToCurve;
+use redox_ecc::montgomery::{
+    CURVE25519_SHA256_ELL2_NU_, CURVE25519_SHA256_ELL2_RO_, CURVE25519_SHA512_ELL2_NU_,
+    CURVE25519_SHA512_ELL2_RO_, CURVE448_SHA512_ELL2_NU_, CURVE448_SHA512_ELL2_RO_,
+};
+use redox_ecc::primefield::Fp;
 use redox_ecc::weierstrass::P256;
 use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
 use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
 use redox_ecc::weierstrass::{P256_SHA256_SVDW_NU_, P384_SHA512_SVDW_NU_, P521_SHA512_SVDW_NU_};
 use redox_ecc::weierstrass::{P256_SHA256_SVDW_RO_, P384_SHA512_SVDW_RO_, P521_SHA512_SVDW_RO_};
-
-use redox_ecc::field::{FromFactory, Sqrt};
-use redox_ecc::primefield::Fp;
 
 fn main() {
     println!("{}", version());
@@ -110,18 +113,24 @@ fn main() {
     // println!("a: {} ", a);
 
     let suites = vec![
-        P256_SHA256_SSWU_NU_,
-        P256_SHA256_SSWU_RO_,
-        P256_SHA256_SVDW_NU_,
-        P256_SHA256_SVDW_RO_,
-        P384_SHA512_SSWU_NU_,
-        P384_SHA512_SSWU_RO_,
-        P384_SHA512_SVDW_NU_,
-        P384_SHA512_SVDW_RO_,
-        P521_SHA512_SSWU_NU_,
-        P521_SHA512_SSWU_RO_,
-        P521_SHA512_SVDW_NU_,
-        P521_SHA512_SVDW_RO_,
+        CURVE25519_SHA256_ELL2_NU_,
+        CURVE25519_SHA256_ELL2_RO_,
+        CURVE25519_SHA512_ELL2_NU_,
+        CURVE25519_SHA512_ELL2_RO_,
+        CURVE448_SHA512_ELL2_NU_,
+        CURVE448_SHA512_ELL2_RO_,
+        // P256_SHA256_SSWU_NU_,
+        // P256_SHA256_SSWU_RO_,
+        // P256_SHA256_SVDW_NU_,
+        // P256_SHA256_SVDW_RO_,
+        // P384_SHA512_SSWU_NU_,
+        // P384_SHA512_SSWU_RO_,
+        // P384_SHA512_SVDW_NU_,
+        // P384_SHA512_SVDW_RO_,
+        // P521_SHA512_SSWU_NU_,
+        // P521_SHA512_SSWU_RO_,
+        // P521_SHA512_SVDW_NU_,
+        // P521_SHA512_SVDW_RO_,
     ];
     for suite in suites {
         let enc = suite.get(dst);

@@ -2,19 +2,25 @@
 //!
 //! The montgomery module is meant to be used for bar.
 mod curve;
+mod h2c;
 mod point;
 mod scalar;
 
 pub use crate::montgomery::curve::Curve;
+pub use crate::montgomery::h2c::{
+    CURVE25519_SHA256_ELL2_NU_, CURVE25519_SHA256_ELL2_RO_, CURVE25519_SHA512_ELL2_NU_,
+    CURVE25519_SHA512_ELL2_RO_, CURVE448_SHA512_ELL2_NU_, CURVE448_SHA512_ELL2_RO_,
+};
 pub use crate::montgomery::point::{Point, ProyCoordinates};
 pub use crate::montgomery::scalar::Scalar;
 
+#[derive(Copy, Clone)]
 pub struct CurveID(&'static Params);
 
 /// CURVE25519 is the curve25519 elliptic curve as specified in RFC-7748.
-pub static CURVE25519: &CurveID = &CurveID(&CURVE25519_PARAMS);
+pub static CURVE25519: CurveID = CurveID(&CURVE25519_PARAMS);
 /// CURVE448 is the curve448 elliptic curve as specified in RFC-7748.
-pub static CURVE448: &CurveID = &CurveID(&CURVE448_PARAMS);
+pub static CURVE448: CurveID = CurveID(&CURVE448_PARAMS);
 
 struct Params {
     name: &'static str,

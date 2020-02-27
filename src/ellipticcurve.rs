@@ -6,7 +6,6 @@ use num_bigint::{BigInt, BigUint};
 
 use crate::field::Field;
 use crate::ops::{AddRef, DivRef, MulRef, NegRef, ScMulRef, SubRef};
-
 /// EcScalar models the behaviour of a scalar to multiply points.
 pub trait EcScalar: AddRef + SubRef + MulRef + DivRef + NegRef {}
 

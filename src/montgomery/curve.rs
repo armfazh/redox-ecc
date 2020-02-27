@@ -21,14 +21,14 @@ use crate::primefield::{Fp, FpElt};
 ///
 #[derive(Clone, PartialEq)]
 pub struct Curve {
-    f: Fp,
-    pub(super) a: FpElt,
-    pub(super) b: FpElt,
-    pub(super) s: FpElt,
-    pub(super) r: BigUint,
-    gx: FpElt,
-    gy: FpElt,
-    h: BigUint,
+    pub f: Fp,
+    pub a: FpElt,
+    pub b: FpElt,
+    pub s: FpElt,
+    pub r: BigUint,
+    pub gx: FpElt,
+    pub gy: FpElt,
+    pub h: BigUint,
 }
 
 impl EllipticCurve for Curve {
@@ -74,8 +74,8 @@ impl EllipticCurve for Curve {
     }
 }
 
-impl std::convert::From<&CurveID> for Curve {
-    fn from(id: &CurveID) -> Curve {
+impl std::convert::From<CurveID> for Curve {
+    fn from(id: CurveID) -> Curve {
         let params = id.0;
         let f = Fp::new(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
