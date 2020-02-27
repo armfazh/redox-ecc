@@ -11,7 +11,6 @@ use std::ops::{Div, Mul};
 
 use crate::do_if_eq;
 use crate::ellipticcurve::EcScalar;
-use crate::ops::{AddRef, DivRef, MulRef, NegRef, SubRef};
 use crate::weierstrass::point::Point;
 
 #[derive(Clone, PartialEq)]
@@ -28,11 +27,6 @@ impl Scalar {
     }
 }
 
-impl AddRef for Scalar {}
-impl SubRef for Scalar {}
-impl MulRef for Scalar {}
-impl DivRef for Scalar {}
-impl NegRef for Scalar {}
 impl EcScalar for Scalar {}
 
 impl Scalar {

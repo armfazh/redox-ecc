@@ -54,13 +54,11 @@ where
             let u1 = self.hash_to_field.hash(self.h, msg, &self.dst, 1u8, self.l);
             let p0 = self.map_to_curve.map(u0);
             let p1 = self.map_to_curve.map(u1);
-            // let p2 = p1 + &p0;
             p0 + p1
         } else {
             let u = self.hash_to_field.hash(self.h, msg, &self.dst, 2u8, self.l);
             self.map_to_curve.map(u)
         };
-        p
-        // p  self.cofactor
+        p * &self.cofactor
     }
 }

@@ -19,7 +19,6 @@ use std::rc::Rc;
 use crate::do_if_eq;
 use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};
 use crate::h2c::{HashID, HashToField};
-use crate::ops::{AddRef, DivRef, MulRef, NegRef, SubRef};
 
 struct Params {
     p: BigInt,
@@ -111,6 +110,23 @@ pub struct FpElt {
     f: Rc<Params>,
 }
 
+// impl<'b> EltOps<&'b FpElt, FpElt> for FpElt {}
+// impl<'a> EltOps<FpElt, FpElt> for &'a FpElt {}
+impl<'a, 'b> std::ops::Add<&'b FpElt> for &'a FpElt {
+    type Output = FpElt;
+    fn add(self, other: &'b FpElt) -> FpElt {
+        do_if_eq!(self.f == other.f, self.red(&self.n + &other.n), ERR_BIN_OP)
+    }
+}
+impl<'a> std::ops::Add<FpElt> for &'a FpElt {
+    type Output = FpElt;
+    fn add(self, other: FpElt) -> FpElt {
+        do_if_eq!(self.f == other.f, self.red(&self.n + &other.n), ERR_BIN_OP)
+    }
+}
+
+impl FieldElement for FpElt {}
+
 impl FpElt {
     #[inline]
     fn red(&self, n: BigInt) -> FpElt {
@@ -125,7 +141,7 @@ impl FpElt {
     }
 }
 
-impl_op_ex!(+|a: &FpElt, b: &FpElt| -> FpElt {
+impl_op_ex!(+|a: FpElt, b: &FpElt| -> FpElt {
     do_if_eq!(a.f == b.f, a.red(&a.n + &b.n), ERR_BIN_OP)
 });
 impl_op_ex!(-|a: &FpElt, b: &FpElt| -> FpElt {

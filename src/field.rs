@@ -3,8 +3,9 @@
 //! The field module is meant to be used for bar.
 
 use num_bigint::BigInt;
+use num_traits::identities::{One, Zero};
 
-use crate::ops::{AddRef, DivRef, MulRef, NegRef, SubRef};
+use crate::ops::{AddRef, DivRef, MulRef, SubRef};
 
 pub trait FromFactory<T: Sized>: Field {
     fn from(&self, _: T) -> <Self as Field>::Elt;
@@ -42,19 +43,15 @@ pub trait Sgn0 {
 
 pub trait CMov: Clone {
     fn cmov(x: &Self, y: &Self, b: bool) -> Self {
-        match b {
-            true => y.clone(),
-            false => x.clone(),
+        if b {
+            y.clone()
+        } else {
+            x.clone()
         }
     }
 }
 
-use std::ops::{Add, Div, Mul, Sub};
-
-/// FieldElement is an element of a finite field.
-pub trait FieldElement {}
-impl<T> FieldElement for T where T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> {}
-// pub trait FieldElement: AddRef + SubRef + MulRef + DivRef + NegRef + Sqrt + CMov + Sgn0 {}
+pub trait FieldElement: PartialEq + Zero + One + AddRef + SubRef + MulRef + DivRef {}
 
 /// Field is a fabric to instante a finite field.
 pub trait Field {

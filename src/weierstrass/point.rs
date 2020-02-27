@@ -7,10 +7,10 @@ use num_bigint::ToBigInt;
 use num_traits::identities::{One, Zero};
 
 use std::ops;
-use std::ops::Mul;
 
 use crate::do_if_eq;
-use crate::ellipticcurve::EllipticCurve;
+use crate::ellipticcurve::{EcPoint, EllipticCurve};
+use crate::ops::ScMulRef;
 use crate::primefield::FpElt;
 use crate::weierstrass::curve::Curve;
 use crate::weierstrass::scalar::Scalar;
@@ -27,6 +27,8 @@ pub struct Point {
     pub(super) e: Curve,
     pub(super) c: ProyCoordinates,
 }
+
+impl EcPoint<Scalar> for Point {}
 
 impl Point {
     pub fn normalize(&mut self) {
@@ -126,36 +128,17 @@ impl PartialEq for Point {
     }
 }
 
-impl<'a, 'b> Mul<&'b Scalar> for &'a Point {
-    type Output = Point;
-    #[inline]
-    fn mul(self, other: &Scalar) -> Self::Output {
-        let r = self.e.r.to_bigint().unwrap();
-        do_if_eq!(r == other.r, self.core_mul(&other), ERR_MUL_OP)
-    }
-}
-impl<'a> Mul<&'a Scalar> for Point {
-    type Output = Point;
-    #[inline]
-    fn mul(self, other: &'a Scalar) -> Self::Output {
-        let r = self.e.r.to_bigint().unwrap();
-        do_if_eq!(r == other.r, self.core_mul(&other), ERR_MUL_OP)
-    }
-}
-impl Mul<Scalar> for Point {
-    type Output = Point;
-    #[inline]
-    fn mul(self, other: Scalar) -> Self::Output {
-        let r = self.e.r.to_bigint().unwrap();
-        do_if_eq!(r == other.r, self.core_mul(&other), ERR_MUL_OP)
-    }
-}
-
 impl_op_ex!(+|a: &Point , b: &Point | -> Point  {
     do_if_eq!(a.e == b.e, a.core_add(b), ERR_ADD_OP)
 });
 impl_op_ex!(-|a: &Point, b: &Point| -> Point { a + (-b) });
 impl_op_ex!(-|a: &Point| -> Point { a.core_neg() });
+impl_op_ex!(*|a: &Point, b: &Scalar| -> Point {
+    let r = a.e.r.to_bigint().unwrap();
+    do_if_eq!(r == b.r, a.core_mul(b), ERR_MUL_OP)
+});
+
+impl ScMulRef<Scalar> for Point {}
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
