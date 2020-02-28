@@ -1,13 +1,10 @@
-mod sswu;
-mod svdw;
-
 use crate::ellipticcurve::EllipticCurve;
 use crate::field::{FromFactory, Sgn0Endianness};
 use crate::h2c::{EncodeToCurve, Encoding, HashID, MapToCurve};
+use crate::instances::{P256, P384, P521, SECP256K1};
+use crate::weierstrass::SSWU;
+use crate::weierstrass::SVDW;
 use crate::weierstrass::{Curve, CurveID};
-use crate::weierstrass::{P256, P384, P521, SECP256K1};
-use sswu::SSWU;
-use svdw::SVDW;
 
 #[derive(Copy, Clone)]
 pub enum MapID {
@@ -31,7 +28,7 @@ impl Suite {
     pub fn get(&self, dst: &[u8]) -> impl EncodeToCurve<E = Curve> {
         let (h, l, ro) = (self.h, self.l, self.ro);
         let dst = dst.to_vec();
-        let e = Curve::from(self.curve);
+        let e = self.curve.get();
         let cofactor = e.new_scalar(e.get_cofactor());
         let map_to_curve: Box<dyn MapToCurve<E = Curve>> = match self.map {
             MapID::SSWU => Box::new(SSWU::new(e.clone(), e.f.from(self.z), self.s)),

@@ -1,3 +1,7 @@
+//! This is documentation for the `h2c` module.
+//!
+//! The h2c module is meant to be used for bar.
+
 use crate::ellipticcurve::EllipticCurve;
 use crate::field::Field;
 
@@ -62,3 +66,5 @@ where
         p * &self.cofactor
     }
 }
+
+pub mod suites;

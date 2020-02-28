@@ -19,12 +19,16 @@ pub struct ProyCoordinates {
 }
 #[derive(Clone)]
 pub struct Point {
-    pub(super) e: Curve,
-    pub(super) c: ProyCoordinates,
+    pub(crate) e: Curve,
+    pub(crate) c: ProyCoordinates,
 }
 
-impl EcPoint<Scalar> for Point {}
 impl ScMulRef<Scalar> for Point {}
+impl EcPoint<Scalar> for Point {
+    fn is_zero(&self) -> bool {
+        self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
+    }
+}
 
 impl Point {
     pub fn normalize(&mut self) {
@@ -32,9 +36,6 @@ impl Point {
         self.c.x = &self.c.x * &inv_z;
         self.c.y = &self.c.y * &inv_z;
         self.c.z.set_one();
-    }
-    pub fn is_identity(&self) -> bool {
-        self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
     }
     fn core_neg(&self) -> Point {
         self.e.new_point(ProyCoordinates {
@@ -77,6 +78,9 @@ impl Point {
             }
         }
         q
+    }
+    pub fn is_two_torsion(&self) -> bool {
+        self.c.y.is_zero() && self.c.z.is_one()
     }
 }
 

@@ -10,7 +10,6 @@ use std::str::FromStr;
 use crate::do_if_eq;
 use crate::edwards::point::{Point, ProyCoordinates};
 use crate::edwards::scalar::Scalar;
-use crate::edwards::CurveID;
 use crate::ellipticcurve::EllipticCurve;
 use crate::field::{Field, FromFactory};
 use crate::primefield::{Fp, FpElt};
@@ -20,13 +19,13 @@ use crate::primefield::{Fp, FpElt};
 ///
 #[derive(Clone, PartialEq)]
 pub struct Curve {
-    f: Fp,
-    pub(super) a: FpElt,
-    pub(super) d: FpElt,
-    pub(super) r: BigUint,
-    gx: FpElt,
-    gy: FpElt,
-    h: BigUint,
+    pub f: Fp,
+    pub a: FpElt,
+    pub d: FpElt,
+    pub r: BigUint,
+    pub gx: FpElt,
+    pub gy: FpElt,
+    pub h: BigUint,
 }
 
 impl EllipticCurve for Curve {
@@ -81,9 +80,30 @@ impl EllipticCurve for Curve {
     }
 }
 
-impl std::convert::From<&CurveID> for Curve {
-    fn from(id: &CurveID) -> Curve {
-        let params = id.0;
+impl std::fmt::Display for Curve {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "Twisted Edwards Curve ax^2+y^2=1+dx^2y^2\na: {}\nd: {}",
+            self.a, self.d,
+        )
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub struct Params {
+    pub name: &'static str,
+    pub p: &'static str,
+    pub a: &'static str,
+    pub d: &'static str,
+    pub r: &'static str,
+    pub h: &'static str,
+    pub gx: &'static str,
+    pub gy: &'static str,
+}
+
+impl<'a> std::convert::From<&'a Params> for Curve {
+    fn from(params: &'a Params) -> Curve {
         let f = Fp::new(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
         let d = f.from(params.d);
@@ -103,13 +123,13 @@ impl std::convert::From<&CurveID> for Curve {
     }
 }
 
-impl std::fmt::Display for Curve {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "Twisted Edwards Curve ax^2+y^2=1+dx^2y^2\na: {}\nd: {}",
-            self.a, self.d,
-        )
+/// Curve identifier of a well-known curve.
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct CurveID(pub &'static Params);
+
+impl CurveID {
+    pub fn get(&self) -> Curve {
+        Curve::from(self.0)
     }
 }
 

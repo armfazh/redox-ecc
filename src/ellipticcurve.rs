@@ -4,20 +4,23 @@
 
 use num_bigint::{BigInt, BigUint};
 
+use std::fmt::Display;
+
 use crate::field::Field;
 use crate::ops::{AddRef, DivRef, MulRef, NegRef, ScMulRef, SubRef};
 /// EcScalar models the behaviour of a scalar to multiply points.
-pub trait EcScalar: AddRef + SubRef + MulRef + DivRef + NegRef {}
+pub trait EcScalar: Display + AddRef + SubRef + MulRef + DivRef + NegRef {}
 
 /// EcPoint models the behaviour of a point on an elliptic curve.
-pub trait EcPoint<T>: AddRef + SubRef + NegRef + ScMulRef<T>
+pub trait EcPoint<T>: Display + AddRef + SubRef + NegRef + ScMulRef<T>
 where
     T: EcScalar,
 {
+    fn is_zero(&self) -> bool;
 }
 
 /// Curve trait allows to implement elliptic curve operations.
-pub trait EllipticCurve: Sized {
+pub trait EllipticCurve {
     type F: Field;
     type Scalar: EcScalar;
     type Point: EcPoint<Self::Scalar>;
@@ -29,4 +32,14 @@ pub trait EllipticCurve: Sized {
     fn is_on_curve(&self, _: &Self::Point) -> bool;
     fn get_order(&self) -> BigUint;
     fn get_cofactor(&self) -> BigInt;
+}
+
+/// Rational map between two elliptic curves.
+pub trait RationalMap {
+    type E0: EllipticCurve;
+    type E1: EllipticCurve;
+    fn domain(&self) -> Self::E0;
+    fn codomain(&self) -> Self::E1;
+    fn push(&self, p: <Self::E0 as EllipticCurve>::Point) -> <Self::E1 as EllipticCurve>::Point;
+    fn pull(&self, p: <Self::E1 as EllipticCurve>::Point) -> <Self::E0 as EllipticCurve>::Point;
 }

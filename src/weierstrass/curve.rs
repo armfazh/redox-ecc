@@ -15,7 +15,6 @@ use crate::field::{Field, FromFactory};
 use crate::primefield::{Fp, FpElt};
 use crate::weierstrass::point::{Point, ProyCoordinates};
 use crate::weierstrass::scalar::Scalar;
-use crate::weierstrass::CurveID;
 
 /// This is an elliptic curve defined by the Weierstrass equation `y^2=x^3+ax+b`.
 ///
@@ -79,9 +78,30 @@ impl EllipticCurve for Curve {
     }
 }
 
-impl std::convert::From<CurveID> for Curve {
-    fn from(id: CurveID) -> Curve {
-        let params = id.0;
+impl std::fmt::Display for Curve {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "Weierstrass Curve y^2=x^3+ax+b\na: {}\nb: {}",
+            self.a, self.b,
+        )
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub struct Params {
+    pub name: &'static str,
+    pub p: &'static str,
+    pub a: &'static str,
+    pub b: &'static str,
+    pub r: &'static str,
+    pub h: &'static str,
+    pub gx: &'static str,
+    pub gy: &'static str,
+}
+
+impl<'a> std::convert::From<&'a Params> for Curve {
+    fn from(params: &'a Params) -> Curve {
         let f = Fp::new(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
         let b = f.from(params.b);
@@ -101,13 +121,13 @@ impl std::convert::From<CurveID> for Curve {
     }
 }
 
-impl std::fmt::Display for Curve {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "Weierstrass Curve y^2=x^3+ax+b\na: {}\nb: {}",
-            self.a, self.b,
-        )
+/// Curve identifier of a well-known curve.
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct CurveID(pub &'static Params);
+
+impl CurveID {
+    pub fn get(&self) -> Curve {
+        Curve::from(self.0)
     }
 }
 

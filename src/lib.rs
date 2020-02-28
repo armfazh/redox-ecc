@@ -23,6 +23,8 @@ pub mod h2c;
 pub mod montgomery;
 pub mod weierstrass;
 
+pub mod instances;
+
 #[cfg(test)]
 mod tests;
 

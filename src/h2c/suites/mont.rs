@@ -1,11 +1,9 @@
-mod elligator2;
-
 use crate::ellipticcurve::EllipticCurve;
 use crate::field::{FromFactory, Sgn0Endianness};
 use crate::h2c::{EncodeToCurve, Encoding, HashID, MapToCurve};
+use crate::instances::{CURVE25519, CURVE448};
+use crate::montgomery::Ell2;
 use crate::montgomery::{Curve, CurveID};
-use crate::montgomery::{CURVE25519, CURVE448};
-use elligator2::Ell2;
 
 #[derive(Copy, Clone)]
 pub enum MapID {
@@ -28,7 +26,7 @@ impl Suite {
     pub fn get(&self, dst: &[u8]) -> impl EncodeToCurve<E = Curve> {
         let (h, l, ro) = (self.h, self.l, self.ro);
         let dst = dst.to_vec();
-        let e = Curve::from(self.curve);
+        let e = self.curve.get();
         let cofactor = e.new_scalar(e.get_cofactor());
         let map_to_curve: Box<dyn MapToCurve<E = Curve>> = match self.map {
             MapID::ELL2 => Box::new(Ell2::new(e.clone(), e.f.from(self.z), self.s)),

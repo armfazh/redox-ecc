@@ -11,6 +11,7 @@ use num_bigint::BigUint;
 // use redox_ecc::field::{FpElt, PrimeField};
 // use redox_ecc::montgomery;
 // use redox_ecc::montgomery::CURVE25519;
+use redox_ecc::montgomery;
 use redox_ecc::version;
 use redox_ecc::weierstrass;
 // // use redox_ecc::weierstrass::ProyCoordinates;
@@ -20,17 +21,18 @@ use redox_ecc::weierstrass;
 // use redox_ecc::h2c::{HashID, HashToField};
 use redox_ecc::ellipticcurve::EllipticCurve;
 use redox_ecc::field::{FromFactory, Sqrt};
-use redox_ecc::h2c::EncodeToCurve;
-use redox_ecc::montgomery::{
-    CURVE25519_SHA256_ELL2_NU_, CURVE25519_SHA256_ELL2_RO_, CURVE25519_SHA512_ELL2_NU_,
-    CURVE25519_SHA512_ELL2_RO_, CURVE448_SHA512_ELL2_NU_, CURVE448_SHA512_ELL2_RO_,
-};
+// use redox_ecc::h2c::EncodeToCurve;
+// use redox_ecc::montgomery::{
+//     CURVE25519_SHA256_ELL2_NU_, CURVE25519_SHA256_ELL2_RO_, CURVE25519_SHA512_ELL2_NU_,
+//     CURVE25519_SHA512_ELL2_RO_, CURVE448_SHA512_ELL2_NU_, CURVE448_SHA512_ELL2_RO_,
+// };
+use redox_ecc::instances::CURVE25519;
+use redox_ecc::instances::{P256, P384};
 use redox_ecc::primefield::Fp;
-use redox_ecc::weierstrass::P256;
-use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
-use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
-use redox_ecc::weierstrass::{P256_SHA256_SVDW_NU_, P384_SHA512_SVDW_NU_, P521_SHA512_SVDW_NU_};
-use redox_ecc::weierstrass::{P256_SHA256_SVDW_RO_, P384_SHA512_SVDW_RO_, P521_SHA512_SVDW_RO_};
+// use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
+// use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
+// use redox_ecc::weierstrass::{P256_SHA256_SVDW_NU_, P384_SHA512_SVDW_NU_, P521_SHA512_SVDW_NU_};
+// use redox_ecc::weierstrass::{P256_SHA256_SVDW_RO_, P384_SHA512_SVDW_RO_, P521_SHA512_SVDW_RO_};
 
 fn main() {
     println!("{}", version());
@@ -85,13 +87,15 @@ fn main() {
     // println!("N: {} ", &a);
     // println!("N: {} ", &b);
     // println!("N: {} ", b.sqrt());
-
-    let ec = weierstrass::Curve::from(P256);
-    //
+    let ec = P256.get();
     let g0 = ec.get_generator();
     let g1 = ec.get_generator();
-    //      let _g2 = g0 + &g1;
-    println!("G: {} ", g0 + &g1);
+    println!("G: {} ", g0 + g1);
+    let ec = P384.get();
+    let g0 = ec.get_generator();
+    let g1 = ec.get_generator();
+    println!("G: {} ", g0 + g1);
+    // println!("G: {} ", g2 + g3);
     // let g2 = ec.get_generator();
     // let g3 = ec.get_generator();
     //
@@ -105,39 +109,39 @@ fn main() {
     // println!("G: {} ", d);
 
     // let f = ec.get_field();
-    let msg = "This is a message string".as_bytes();
-    let dst = "QUUX-V01-CS02".as_bytes();
+    // let msg = "This is a message string".as_bytes();
+    // let dst = "QUUX-V01-CS02".as_bytes();
     //
     // let a = f.hash(HashID::SHA256, msg, dst, 0u8, 48usize);
     // println!("a: {} ", f);
     // println!("a: {} ", a);
 
-    let suites = vec![
-        CURVE25519_SHA256_ELL2_NU_,
-        CURVE25519_SHA256_ELL2_RO_,
-        CURVE25519_SHA512_ELL2_NU_,
-        CURVE25519_SHA512_ELL2_RO_,
-        CURVE448_SHA512_ELL2_NU_,
-        CURVE448_SHA512_ELL2_RO_,
-        // P256_SHA256_SSWU_NU_,
-        // P256_SHA256_SSWU_RO_,
-        // P256_SHA256_SVDW_NU_,
-        // P256_SHA256_SVDW_RO_,
-        // P384_SHA512_SSWU_NU_,
-        // P384_SHA512_SSWU_RO_,
-        // P384_SHA512_SVDW_NU_,
-        // P384_SHA512_SVDW_RO_,
-        // P521_SHA512_SSWU_NU_,
-        // P521_SHA512_SSWU_RO_,
-        // P521_SHA512_SVDW_NU_,
-        // P521_SHA512_SVDW_RO_,
-    ];
-    for suite in suites {
-        let enc = suite.get(dst);
-        let mut p = enc.hash(msg);
-        p.normalize();
-        println!("enc: {} {} ", suite, p);
-    }
+    // let suites = vec![
+    //     CURVE25519_SHA256_ELL2_NU_,
+    //     CURVE25519_SHA256_ELL2_RO_,
+    //     CURVE25519_SHA512_ELL2_NU_,
+    //     CURVE25519_SHA512_ELL2_RO_,
+    //     CURVE448_SHA512_ELL2_NU_,
+    //     CURVE448_SHA512_ELL2_RO_,
+    // P256_SHA256_SSWU_NU_,
+    // P256_SHA256_SSWU_RO_,
+    // P256_SHA256_SVDW_NU_,
+    // P256_SHA256_SVDW_RO_,
+    // P384_SHA512_SSWU_NU_,
+    // P384_SHA512_SSWU_RO_,
+    // P384_SHA512_SVDW_NU_,
+    // P384_SHA512_SVDW_RO_,
+    // P521_SHA512_SSWU_NU_,
+    // P521_SHA512_SSWU_RO_,
+    // P521_SHA512_SVDW_NU_,
+    // P521_SHA512_SVDW_RO_,
+    // ];
+    // for suite in suites {
+    //     let enc = suite.get(dst);
+    //     let mut p = enc.hash(msg);
+    //     p.normalize();
+    //     println!("enc: {} {} ", suite, p);
+    // }
 
     // println!("N: {} ", P256);
     // let gg = ec.get_generator();

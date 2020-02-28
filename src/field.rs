@@ -4,6 +4,7 @@
 
 use num_bigint::BigInt;
 use num_traits::identities::{One, Zero};
+use std::fmt::Display;
 use std::ops::BitXor;
 
 use crate::ops::{AddRef, DivRef, MulRef, SubRef};
@@ -53,7 +54,7 @@ pub trait CMov: Clone {
 }
 
 pub trait FieldElement:
-    PartialEq + Zero + One + AddRef + SubRef + MulRef + DivRef + BitXor<u32>
+    Display + PartialEq + Zero + One + AddRef + SubRef + MulRef + DivRef + BitXor<u32>
 {
 }
 

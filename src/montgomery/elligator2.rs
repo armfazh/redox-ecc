@@ -26,7 +26,6 @@ impl Ell2 {
         }
     }
     fn verify(e: &Curve) -> bool {
-        let f = &e.f;
         let cond1 = !e.a.is_zero();
         let cond2 = !e.b.is_zero();
         cond1 && cond2
@@ -56,12 +55,14 @@ impl MapToCurve for Ell2 {
         let x2 = -&x1 - &self.ca; // 12.  x2 = -x1 - A
         let gx2 = t1 * &gx1; // 13. gx2 = t1 * gx1
         let e2 = gx1.is_square(); // 14.  e2 = is_square(gx1)
-        let x = cmov(&x2, &x1, e2); // 15.   x = CMOV(x2, x1, e2)    // If is_square(gx1), x = x1, else x = x2
+        let mut x = cmov(&x2, &x1, e2); // 15.   x = CMOV(x2, x1, e2)    // If is_square(gx1), x = x1, else x = x2
         let y2 = cmov(&gx2, &gx1, e2); // 16.  y2 = CMOV(gx2, gx1, e2)  // If is_square(gx1), y2 = gx1, else y2 = gx2
         let mut y = y2.sqrt(); // 17.   y = sqrt(y2)
         let e3 = u.sgn0(s) == y.sgn0(s); // 18.  e3 = sgn0(u) == sgn0(y)  // Fix sign of y
         y = cmov(&(-&y), &y, e3); // 19.   y = CMOV(-y, y, e3)
         let z = f.one();
+        x = x * &self.e.b;
+        y = y * &self.e.b;
         self.e.new_point(ProyCoordinates { x, y, z })
     }
 }

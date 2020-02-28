@@ -14,8 +14,8 @@ use crate::ellipticcurve::EllipticCurve;
 use crate::field::{Field, FromFactory};
 use crate::montgomery::point::{Point, ProyCoordinates};
 use crate::montgomery::scalar::Scalar;
-use crate::montgomery::CurveID;
 use crate::primefield::{Fp, FpElt};
+
 /// This is an elliptic curve defined in Montgomery from and defined by the equation:
 /// by^2=x^3+ax^2+x.
 ///
@@ -74,9 +74,31 @@ impl EllipticCurve for Curve {
     }
 }
 
-impl std::convert::From<CurveID> for Curve {
-    fn from(id: CurveID) -> Curve {
-        let params = id.0;
+impl std::fmt::Display for Curve {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "Montgomery Curve by^2=x^3+ax^2+x\na: {}\nb: {}",
+            self.a, self.b,
+        )
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub struct Params {
+    pub name: &'static str,
+    pub p: &'static str,
+    pub a: &'static str,
+    pub b: &'static str,
+    pub s: &'static str,
+    pub r: &'static str,
+    pub h: &'static str,
+    pub gx: &'static str,
+    pub gy: &'static str,
+}
+
+impl<'a> std::convert::From<&'a Params> for Curve {
+    fn from(params: &'a Params) -> Curve {
         let f = Fp::new(BigUint::from_str(params.p).unwrap());
         let a = f.from(params.a);
         let b = f.from(params.b);
@@ -98,13 +120,13 @@ impl std::convert::From<CurveID> for Curve {
     }
 }
 
-impl std::fmt::Display for Curve {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "Montgomery Curve by^2=x^3+ax^2+x\na: {}\nb: {}",
-            self.a, self.b,
-        )
+/// Curve identifier of a well-known curve.
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct CurveID(pub &'static Params);
+
+impl CurveID {
+    pub fn get(&self) -> Curve {
+        Curve::from(self.0)
     }
 }
 
