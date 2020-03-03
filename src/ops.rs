@@ -8,10 +8,8 @@ macro_rules! make_trait {
             ),
             pub trait $name
             where
-                for<'a, 'b> Self: Sized
-                    + 'a
-                    + 'static
-                    + std::ops::$trait<&'b Self, Output = Self>
+                Self: Sized
+                    + for<'a> std::ops::$trait<&'a Self, Output = Self>
                     + std::ops::$trait<Self, Output = Self>,
             {
                 // for<'a, 'b> &'a Self: Sized

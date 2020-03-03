@@ -38,7 +38,9 @@ pub struct Fp(Rc<Params>);
 impl Fp {
     /// Use `new` to generate a prime field instance.
     /// ```
-    ///   let f = Fp::new(BigUint::from(101));
+    ///  use num_bigint::BigUint;
+    ///  use redox_ecc::primefield::Fp;
+    ///  let f = Fp::new(BigUint::from(101u32));
     /// ```
     /// The `modulus` should be a prime number.
     pub fn new(modulus: BigUint) -> Self {
