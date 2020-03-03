@@ -17,13 +17,14 @@ pub mod ops;
 pub mod primefield;
 
 pub mod ellipticcurve;
+pub mod h2c;
 
 pub mod edwards;
-pub mod h2c;
 pub mod montgomery;
 pub mod weierstrass;
 
 pub mod instances;
+pub mod suites;
 
 #[cfg(test)]
 mod tests;

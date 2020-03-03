@@ -1,4 +1,4 @@
-use crate::weierstrass::{Curve, CurveID, Params};
+use crate::weierstrass::{CurveID, Params};
 
 /// P256 is the NIST P-256 elliptic curve.
 pub static P256: CurveID = CurveID(P256_PARAMS);

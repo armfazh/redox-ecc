@@ -8,19 +8,27 @@ macro_rules! make_trait {
             ),
             pub trait $name
             where
-                Self: Sized
-                    + for<'b> std::ops::$trait<&'b Self, Output = Self>
+                for<'a, 'b> Self: Sized
+                    + 'a
+                    + 'static
+                    + std::ops::$trait<&'b Self, Output = Self>
                     + std::ops::$trait<Self, Output = Self>,
             {
-                // for<'a, 'b> &'a Self: std::ops::$trait<&'b Self, Output = Self>,
-                // for<'a, 'b> &'a Self: std::ops::$trait<&'b Self, Output = Self>,
+                // for<'a, 'b> &'a Self: Sized
+                //     + std::ops::$trait<&'b Self, Output = Self>
+                //     + std::ops::$trait<Self, Output = Self>,
             }
         );
-        impl<T> $name for T where
-            T: Sized
-                + std::ops::$trait<T, Output = T>
-                + for<'b> std::ops::$trait<&'b T, Output = T>
+        impl<T> $name for T
+        where
+            for<'a, 'b> T: Sized
+                + 'a
+                + 'static
+                + std::ops::$trait<&'b T, Output = T>
+                + std::ops::$trait<T, Output = T>,
         {
+            // for<'a, 'b> &'a T:
+            // Sized + std::ops::$trait<&'b T, Output = T> + std::ops::$trait<T, Output = T>,
         }
     };
     (unary, $trait:ident, $name:ident) => {

@@ -1,16 +1,16 @@
 use crate::edwards::Curve as TeCurve;
-use crate::edwards::CurveID;
+use crate::edwards::{CurveID, Ell2};
 use crate::ellipticcurve::EllipticCurve;
+use crate::ellipticcurve::RationalMap;
 use crate::field::{FromFactory, Sgn0Endianness};
-use crate::h2c::{EncodeToCurve, Encoding, HashID, MapToCurve};
-use crate::instances::{CURVE25519, EDWARDS25519, EDWARDS448};
+use crate::h2c::{Encoding, HashID, HashToCurve, MapToCurve};
+use crate::instances::{edwards25519_to_curve25519, edwards448_to_curve448};
+use crate::instances::{EDWARDS25519, EDWARDS448};
 use crate::montgomery::Curve as MtCurve;
-use crate::montgomery::Ell2;
-// use crate::edwards::ratmap::Te2Mt25519;
 
 #[derive(Copy, Clone)]
 pub enum MapID {
-    EDELL2,
+    ELL2,
 }
 
 #[derive(Copy, Clone)]
@@ -26,22 +26,19 @@ pub struct Suite {
 }
 
 impl Suite {
-    pub fn get(&self, dst: &[u8]) -> impl EncodeToCurve<E = TeCurve> {
-        // let ratmap = match self.curve {
-        //     EDWARDS25519 => {
-        //         let e0 = Curve::from(EDWARDS25519);
-        //         let e1 = MtCurve::from(CURVE25519);
-        //         let invsqrD = e0.f.from(9);
-        //         Te2Mt25519 { e0, e1, invsqrD }
-        //     } // _ => unimplemented!(),
-        // };
-
+    pub fn get(&self, dst: &[u8]) -> impl HashToCurve<E = TeCurve> {
+        let ratmap: Option<Box<dyn RationalMap<E0 = TeCurve, E1 = MtCurve>>> =
+            match self.curve.0.name {
+                "edwards25519" => Some(Box::new(edwards25519_to_curve25519())),
+                "edwards448" => Some(Box::new(edwards448_to_curve448())),
+                _ => None,
+            };
         let (h, l, ro) = (self.h, self.l, self.ro);
         let dst = dst.to_vec();
         let e = self.curve.get();
         let cofactor = e.new_scalar(e.get_cofactor());
         let map_to_curve: Box<dyn MapToCurve<E = TeCurve>> = match self.map {
-            _ => unimplemented!(), // MapID::EDELL2 => Box::new(Ell2::new(e.clone(), e.f.from(self.z), self.s)),
+            MapID::ELL2 => Box::new(Ell2::new(e.clone(), e.f.from(self.z), self.s, ratmap)),
         };
         Encoding {
             hash_to_field: Box::new(e.f),
@@ -60,12 +57,13 @@ impl std::fmt::Display for Suite {
         write!(f, "{}", self.name)
     }
 }
+
 pub static EDWARDS25519_SHA256_EDELL2_NU_: Suite = Suite {
     name: "edwards25519-SHA256-EDELL2-NU-",
     curve: EDWARDS25519,
     s: Sgn0Endianness::LittleEndian,
     h: HashID::SHA256,
-    map: MapID::EDELL2,
+    map: MapID::ELL2,
     z: 2,
     l: 48,
     ro: false,
@@ -81,7 +79,7 @@ pub static EDWARDS25519_SHA512_EDELL2_NU_: Suite = Suite {
     curve: EDWARDS25519,
     s: Sgn0Endianness::LittleEndian,
     h: HashID::SHA512,
-    map: MapID::EDELL2,
+    map: MapID::ELL2,
     z: 2,
     l: 48,
     ro: false,
@@ -97,7 +95,7 @@ pub static EDWARDS448_SHA512_EDELL2_NU_: Suite = Suite {
     curve: EDWARDS448,
     s: Sgn0Endianness::LittleEndian,
     h: HashID::SHA512,
-    map: MapID::EDELL2,
+    map: MapID::ELL2,
     z: -1,
     l: 84,
     ro: false,

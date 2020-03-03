@@ -1,4 +1,4 @@
-use crate::edwards::{Curve, CurveID, Params};
+use crate::edwards::{CurveID, Params};
 
 /// EDWARDS25519 is the edwards25519 elliptic curve as specified in RFC-7748.
 pub static EDWARDS25519: CurveID = CurveID(&EDWARDS25519_PARAMS);

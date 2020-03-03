@@ -1,5 +1,3 @@
-extern crate num_bigint;
-
 // use num_traits::identities::Zero;
 use std::convert::From;
 
@@ -26,13 +24,14 @@ use redox_ecc::field::{FromFactory, Sqrt};
 //     CURVE25519_SHA256_ELL2_NU_, CURVE25519_SHA256_ELL2_RO_, CURVE25519_SHA512_ELL2_NU_,
 //     CURVE25519_SHA512_ELL2_RO_, CURVE448_SHA512_ELL2_NU_, CURVE448_SHA512_ELL2_RO_,
 // };
-use redox_ecc::instances::CURVE25519;
+use redox_ecc::h2c::HashToCurve;
 use redox_ecc::instances::{P256, P384};
 use redox_ecc::primefield::Fp;
-// use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
-// use redox_ecc::weierstrass::{P256_SHA256_SSWU_RO_, P384_SHA512_SSWU_RO_, P521_SHA512_SSWU_RO_};
-// use redox_ecc::weierstrass::{P256_SHA256_SVDW_NU_, P384_SHA512_SVDW_NU_, P521_SHA512_SVDW_NU_};
-// use redox_ecc::weierstrass::{P256_SHA256_SVDW_RO_, P384_SHA512_SVDW_RO_, P521_SHA512_SVDW_RO_};
+use redox_ecc::suites::{
+    EDWARDS25519_SHA256_EDELL2_NU_, EDWARDS25519_SHA256_EDELL2_RO_, EDWARDS25519_SHA512_EDELL2_NU_,
+    EDWARDS25519_SHA512_EDELL2_RO_, EDWARDS448_SHA512_EDELL2_NU_, EDWARDS448_SHA512_EDELL2_RO_,
+    P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_,
+};
 
 fn main() {
     println!("{}", version());
@@ -95,6 +94,23 @@ fn main() {
     let g0 = ec.get_generator();
     let g1 = ec.get_generator();
     println!("G: {} ", g0 + g1);
+    let msg = "This is a message string".as_bytes();
+    let dst = "QUUX-V01-CS02".as_bytes();
+    for suite in [
+        EDWARDS25519_SHA256_EDELL2_NU_,
+        EDWARDS25519_SHA256_EDELL2_RO_,
+        EDWARDS25519_SHA512_EDELL2_NU_,
+        EDWARDS25519_SHA512_EDELL2_RO_,
+        EDWARDS448_SHA512_EDELL2_NU_,
+        EDWARDS448_SHA512_EDELL2_RO_,
+    ]
+    .iter()
+    {
+        let h = suite.get(dst);
+        let mut p = h.hash(msg);
+        p.normalize();
+        println!("enc: {} {} ", suite, p);
+    }
     // println!("G: {} ", g2 + g3);
     // let g2 = ec.get_generator();
     // let g3 = ec.get_generator();
@@ -109,8 +125,6 @@ fn main() {
     // println!("G: {} ", d);
 
     // let f = ec.get_field();
-    // let msg = "This is a message string".as_bytes();
-    // let dst = "QUUX-V01-CS02".as_bytes();
     //
     // let a = f.hash(HashID::SHA256, msg, dst, 0u8, 48usize);
     // println!("a: {} ", f);

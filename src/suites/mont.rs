@@ -1,6 +1,6 @@
 use crate::ellipticcurve::EllipticCurve;
 use crate::field::{FromFactory, Sgn0Endianness};
-use crate::h2c::{EncodeToCurve, Encoding, HashID, MapToCurve};
+use crate::h2c::{Encoding, HashID, HashToCurve, MapToCurve};
 use crate::instances::{CURVE25519, CURVE448};
 use crate::montgomery::Ell2;
 use crate::montgomery::{Curve, CurveID};
@@ -23,7 +23,7 @@ pub struct Suite {
 }
 
 impl Suite {
-    pub fn get(&self, dst: &[u8]) -> impl EncodeToCurve<E = Curve> {
+    pub fn get(&self, dst: &[u8]) -> impl HashToCurve<E = Curve> {
         let (h, l, ro) = (self.h, self.l, self.ro);
         let dst = dst.to_vec();
         let e = self.curve.get();

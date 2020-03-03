@@ -1,4 +1,4 @@
-use crate::montgomery::{Curve, CurveID, Params};
+use crate::montgomery::{CurveID, Params};
 
 /// CURVE25519 is the curve25519 elliptic curve as specified in RFC-7748.
 pub static CURVE25519: CurveID = CurveID(CURVE25519_PARAMS);

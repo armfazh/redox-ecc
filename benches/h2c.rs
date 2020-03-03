@@ -2,8 +2,8 @@ extern crate num_bigint;
 
 use criterion::{criterion_group, criterion_main, Benchmark, Criterion};
 
-use redox_ecc::h2c::EncodeToCurve;
-use redox_ecc::weierstrass::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
+use redox_ecc::h2c::HashToCurve;
+use redox_ecc::suites::{P256_SHA256_SSWU_NU_, P384_SHA512_SSWU_NU_, P521_SHA512_SSWU_NU_};
 
 fn h2c(c: &mut Criterion) {
     let msg = "message to be hashed".as_bytes();

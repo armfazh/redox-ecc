@@ -27,9 +27,9 @@ pub trait MapToCurve {
     ) -> <Self::E as EllipticCurve>::Point;
 }
 
-/// EncodeToCurve is a function that outputs a point on an elliptic curve from an
+/// HashToCurve is a function that outputs a point on an elliptic curve from an
 /// arbitrary string.
-pub trait EncodeToCurve {
+pub trait HashToCurve {
     type E: EllipticCurve;
     fn hash(&self, msg: &[u8]) -> <Self::E as EllipticCurve>::Point;
 }
@@ -47,7 +47,7 @@ where
     pub ro: bool,
 }
 
-impl<EE> EncodeToCurve for Encoding<EE>
+impl<EE> HashToCurve for Encoding<EE>
 where
     EE: EllipticCurve,
 {
@@ -66,5 +66,3 @@ where
         p * &self.cofactor
     }
 }
-
-pub mod suites;
