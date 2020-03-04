@@ -3,15 +3,19 @@
 //! The curve module is meant to be used for bar.
 
 extern crate num_bigint;
-use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_bigint::{BigInt, BigUint, ToBigInt, Sign};
 
 use num_traits::identities::Zero;
 
 use std::str::FromStr;
+use std::io::{Error,ErrorKind};
+
+use subtle;
+use subtle::ConditionallySelectable;
 
 use crate::do_if_eq;
 use crate::ellipticcurve::EllipticCurve;
-use crate::field::{Field, FromFactory};
+use crate::field::{Field, FromFactory, Sgn0, Sqrt};
 use crate::primefield::{Fp, FpElt};
 use crate::weierstrass::point::{Point, ProyCoordinates};
 use crate::weierstrass::scalar::Scalar;
@@ -76,6 +80,73 @@ impl EllipticCurve for Curve {
             z: self.f.one(),
         })
     }
+    fn serialize(&self, p: &Self::Point, compress: bool, buf: &mut [u8]) {
+        let p_coords = &p.c;
+        let x = &p_coords.x;
+        let y = &p_coords.y;
+        let mut x_bytes = x.to_bytes_be();
+        let mut y_bytes = y.to_bytes_be();
+        let out_bytes = match compress {
+            true => {
+                let choice = (y.sgn0_le() > 0) as u8;
+                // if sign > 0: tag = 0x02; elif sign < 0: tag = 0x03;
+                let tag = u8::conditional_select(&0x02, &0x03, choice.into());
+                // sign should be 1/-1, so this cast should work
+                let mut o = vec![tag];
+                o.append(&mut x_bytes);
+                o
+            },
+            _ => {
+                let mut o: Vec<u8> = vec![0x04];
+                o.append(&mut x_bytes);
+                o.append(&mut y_bytes);
+                o
+            }
+        };
+        buf.copy_from_slice(&out_bytes);
+    }
+    fn deserialize(&self, buf: &[u8]) -> Result<Self::Point,Error> {
+        let p = self.f.get_modulus();
+        let max_bytes = (p.bits()+7)/8;
+        let tag = buf[0];
+        match tag {
+            0x04 => {
+                if buf.len() != 2*max_bytes+1 {
+                    return Err(Error::new(ErrorKind::Other, "Invalid bytes for deserialization"));
+                }
+                let x = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]));
+                let y = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[max_bytes+1..]));
+                Ok(self.new_point(ProyCoordinates {
+                    x: x,
+                    y: y,
+                    z: self.f.one()
+                }))
+            }
+            0x02 | 0x03 => {
+                if buf.len() != max_bytes+1 {
+                    return Err(Error::new(ErrorKind::Other, "Invalid bytes for deserialization"));
+                }
+                // recompute y coordinate
+                let x = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]));
+                let xx = &x * &x;
+                let xx_a = &xx + &self.a;
+                let xxx_ax = &xx_a * &x;
+                let xxx_ax_b = &xxx_ax + &self.b;
+                let y_sqrt = xxx_ax_b.sqrt();
+                let y_sgn_bit = (y_sqrt.sgn0_le() == -1) as u8;
+                let parity_bit = (0x03 == tag) as u8;
+                let parity_cmp = (parity_bit == y_sgn_bit) as u8;
+                let mask = i8::conditional_select(&1, &(-1), parity_cmp.into());
+                let y = self.f.elt(BigInt::from(mask)) * &y_sqrt;
+                Ok(self.new_point(ProyCoordinates {
+                    x: x,
+                    y: y,
+                    z: self.f.one()
+                }))
+            }
+            _ => Err(Error::new(ErrorKind::Other, "Invalid tag specified"))
+        }
+    }
 }
 
 impl std::fmt::Display for Curve {
@@ -116,3 +187,60 @@ impl<'a> std::convert::From<&'a Params> for Curve {
 }
 
 const ERR_ECC_NEW: &str = "not valid point";
+
+// tests for ser/deser
+#[cfg(test)]
+mod tests {
+    use crate::instances::{P256, P384, P521};
+    use crate::ellipticcurve::EllipticCurve;
+
+    #[test]
+    fn point_serialization() {
+        for &id in [P256,P384,P521].iter() {
+            let ec = id.get();
+            let gen = ec.get_generator();
+            let field_len = (ec.f.get_modulus().bits()+7)/8;
+            let mut ser = vec![0; 2*field_len+1];
+            ec.serialize(&gen, false, &mut ser);
+            let deser = ec.deserialize(&ser).unwrap();
+            assert!(ec.is_on_curve(&deser), "decompressed point validity check for {:?}", id.0.name);
+            let gen_z = gen.c.z;
+            let gen_z_sq = &gen_z * &gen_z;
+            let des_z = deser.c.z;
+            let des_z_sq = &des_z * &des_z;
+            assert!(
+                gen.c.x/&gen_z_sq == deser.c.x/&des_z_sq,
+                "decompressed x coordinate equality check for {:?}", id.0.name
+            );
+            assert!(
+                gen.c.y/(&gen_z_sq * &gen_z) == deser.c.y/(&des_z_sq * &des_z),
+                "decompressed y coordinate equality check for {:?}", id.0.name
+            );
+        }
+    }
+
+    #[test]
+    fn point_serialization_compressed() {
+        for &id in [P256,P384,P521].iter() {
+            let ec = id.get();
+            let gen = ec.get_generator();
+            let field_len = (ec.f.get_modulus().bits()+7)/8;
+            let mut ser = vec![0; field_len+1];
+            ec.serialize(&gen, true, &mut ser);
+            let deser = ec.deserialize(&ser).unwrap();
+            assert!(ec.is_on_curve(&deser), "compressed point validity check for {:?}", id.0.name);
+            let gen_z = gen.c.z;
+            let gen_z_sq = &gen_z * &gen_z;
+            let des_z = deser.c.z;
+            let des_z_sq = &des_z * &des_z;
+            assert!(
+                gen.c.x/&gen_z_sq == deser.c.x/&des_z_sq,
+                "compressed x coordinate equality check for {:?}", id.0.name
+            );
+            assert!(
+                gen.c.y/(&gen_z_sq * &gen_z) == deser.c.y/(&des_z_sq * &des_z),
+                "compressed y coordinate equality check for {:?}", id.0.name
+            );
+        }
+    }
+}

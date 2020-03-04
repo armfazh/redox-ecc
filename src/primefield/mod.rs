@@ -50,6 +50,9 @@ impl Fp {
         f.0.sqrt_precmp.replace(SqrtPrecmp::new(&f));
         f
     }
+    pub fn get_modulus(&self) -> BigInt {
+        self.0.p.clone()
+    }
 }
 
 impl Field for Fp {
@@ -107,6 +110,21 @@ impl<'a> FromFactory<&'a str> for Fp {
 pub struct FpElt {
     n: BigInt,
     f: Rc<Params>,
+}
+
+impl FpElt {
+    /// serializes the field element into bytes
+    pub fn to_bytes_be(&self) -> Vec<u8> {
+        let field_len = (self.f.p.bits()+7)/8;
+        let mut bytes = self.n.to_biguint().unwrap().to_bytes_be();
+        let mut out = vec![0; field_len-bytes.len()];
+        if out.len() > 0 {
+            out.append(&mut bytes);
+        } else {
+            out = bytes;
+        }
+        out
+    }
 }
 
 // impl<'b> EltOps<&'b FpElt, FpElt> for FpElt {}
