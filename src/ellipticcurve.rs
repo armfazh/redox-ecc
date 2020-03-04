@@ -33,6 +33,7 @@ pub trait EllipticCurve {
     fn get_order(&self) -> BigUint;
     fn get_cofactor(&self) -> BigInt;
     fn get_field(&self) -> Self::F;
+    fn deserialize(&self, _: &[u8]) -> Result<Self::Point,std::io::Error>;
 }
 
 /// Rational map between two elliptic curves.
