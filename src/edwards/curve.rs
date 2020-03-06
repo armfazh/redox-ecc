@@ -2,17 +2,20 @@
 //!
 //! The curve module is meant to be used for bar.
 
-use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_bigint::{BigInt, BigUint, ToBigInt, Sign};
 use num_traits::identities::Zero;
 
 use std::str::FromStr;
+use std::io::{Error,ErrorKind};
 
 use crate::do_if_eq;
 use crate::edwards::point::{Point, ProyCoordinates};
 use crate::edwards::scalar::Scalar;
 use crate::ellipticcurve::EllipticCurve;
-use crate::field::{Field, FromFactory};
+use crate::field::{Field, FromFactory, Sqrt, Sgn0};
 use crate::primefield::{Fp, FpElt};
+
+use crate::instances::{EDWARDS25519};
 
 /// This is an elliptic curve defined in the twisted Edwards model and defined by the equation:
 /// ax^2+y^2=1+dx^2y^2.
@@ -81,8 +84,48 @@ impl EllipticCurve for Curve {
             z: self.f.one(),
         })
     }
-    fn deserialize(&self, _: &[u8]) -> Result<Self::Point,std::io::Error> {
-        panic!("unimplemented!");
+    // based on https://tools.ietf.org/html/rfc8032#section-5.2.3
+    fn deserialize(&self, buf: &[u8]) -> Result<Self::Point,Error> {
+        // step 1
+        let last_byte = buf.len()-1;
+        let x_0 = (buf[last_byte]>>7)&0x01;
+        let mut y_bytes = buf.to_vec();
+        y_bytes[last_byte] = y_bytes[last_byte]&127; // clear msb
+        let y_zz = BigInt::from_bytes_le(Sign::Plus, &y_bytes);
+        let p = self.f.get_modulus();
+        if y_zz > p {
+            return Err(Error::new(ErrorKind::Other, "Invalid y value chosen"));
+        }
+        let y = self.f.elt(y_zz);
+
+        // step 2
+        let yy = &y*&y;
+        let minus_one = -self.f.one();
+        let u = &yy + &minus_one;
+        // v is computed differently for c25519 and c448
+        let mut val = minus_one.clone();
+        if self == &EDWARDS25519.get() {
+            val = -val;
+        }
+        let v = (&self.d * &yy) + val;
+        let u_inv_v = u/v;
+        let x_sqrt = u_inv_v.sqrt();
+
+        // step 4 (step 3 is unnecessary)
+        if x_sqrt == self.f.zero() && x_0 == 0x01 {
+            return Err(Error::new(ErrorKind::Other, "Failed decoding on square root"));
+        }
+        let tag = (((x_sqrt.sgn0_le()>>1)&0x01)+2) as u8;
+        let mut x = x_sqrt;
+        if tag != x_0 {
+            x = -x;
+        }
+        Ok(self.new_point(ProyCoordinates {
+            x: x.clone(),
+            y: y.clone(),
+            t: &x * &y,
+            z: self.f.one()
+        }))
     }
 }
 
@@ -124,3 +167,40 @@ impl<'a> std::convert::From<&'a Params> for Curve {
 }
 
 const ERR_ECC_NEW: &str = "not valid point";
+
+// tests for ser/deser
+#[cfg(test)]
+mod tests {
+    use crate::instances::{EDWARDS25519, EDWARDS448};
+    use crate::ellipticcurve::{EllipticCurve,EcPoint};
+
+    #[test]
+    fn point_serialization() {
+        for &id in [EDWARDS25519, EDWARDS448].iter() {
+            let ec = id.get();
+            let gen = ec.get_generator();
+            let ser = gen.serialize(false);
+            let deser = ec.deserialize(&ser).unwrap();
+            assert!(ec.is_on_curve(&deser), "decompressed point validity check for {:?}", id.0.name);
+            assert!(
+                gen == deser,
+                "decompressed point equality check for {:?}", id.0.name
+            );
+        }
+    }
+
+    #[test]
+    fn point_serialization_compressed() {
+        for &id in [EDWARDS25519, EDWARDS448].iter() {
+            let ec = id.get();
+            let gen = ec.get_generator();
+            let ser = gen.serialize(true);
+            let deser = ec.deserialize(&ser).unwrap();
+            assert!(ec.is_on_curve(&deser), "compressed point validity check for {:?}", id.0.name);
+            assert!(
+                gen == deser,
+                "compressed point equality check for {:?}", id.0.name
+            );
+        }
+    }
+}
