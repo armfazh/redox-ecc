@@ -10,6 +10,7 @@ use crate::edwards::scalar::Scalar;
 use crate::ellipticcurve::{EcPoint, EllipticCurve};
 use crate::ops::ScMulRef;
 use crate::primefield::FpElt;
+use crate::field::Sgn0;
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
@@ -29,8 +30,16 @@ impl EcPoint<Scalar> for Point {
     fn is_zero(&self) -> bool {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.t.is_zero() && !self.c.z.is_zero()
     }
+    // based on https://tools.ietf.org/html/rfc8032#section-5.2.2
     fn serialize(&self, _: bool) -> Vec<u8> {
-        panic!("unimplemented!");
+        let x = &self.c.x;
+        let y = &self.c.y;
+        // negative == odd
+        let x_0 = (((x.sgn0_le()>>1)&0x01)<<7) as u8;
+        let mut enc = y.to_bytes_be();
+        enc[0] = enc[0] | x_0;
+        enc.reverse(); // le
+        enc
     }
 }
 
