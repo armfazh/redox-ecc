@@ -1,8 +1,7 @@
 use num_traits::identities::Zero;
 
-use crate::ellipticcurve::EllipticCurve;
+use crate::ellipticcurve::{EllipticCurve, MapToCurve};
 use crate::field::{CMov, Field, FromFactory, Sgn0, Sgn0Endianness, Sqrt};
-use crate::h2c::MapToCurve;
 use crate::primefield::FpElt;
 use crate::weierstrass::{Curve, ProyCoordinates};
 

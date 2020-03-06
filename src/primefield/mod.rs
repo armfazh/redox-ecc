@@ -17,8 +17,9 @@ use std::ops::{BitXor, Div};
 use std::rc::Rc;
 
 use crate::do_if_eq;
-use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};
-use crate::h2c::{HashID, HashToField};
+use crate::field::{
+    CMov, Field, FieldElement, FromFactory, HashID, HashToField, IntoFactory, Sgn0, Sqrt,
+};
 
 struct Params {
     p: BigInt,
