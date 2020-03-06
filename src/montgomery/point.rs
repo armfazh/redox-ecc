@@ -28,6 +28,9 @@ impl EcPoint<Scalar> for Point {
     fn is_zero(&self) -> bool {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
     }
+    fn serialize(&self, _: bool, _: &mut [u8]) {
+        panic!("unimplemented!");
+    }
 }
 
 impl Point {

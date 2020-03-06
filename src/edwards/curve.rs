@@ -81,9 +81,6 @@ impl EllipticCurve for Curve {
             z: self.f.one(),
         })
     }
-    fn serialize(&self, _: &Self::Point, _: bool, _: &mut [u8]) {
-        panic!("unimplemented!");
-    }
     fn deserialize(&self, _: &[u8]) -> Result<Self::Point,std::io::Error> {
         panic!("unimplemented!");
     }
