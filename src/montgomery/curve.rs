@@ -125,7 +125,7 @@ impl<'a> std::convert::From<&'a Params> for Curve {
 pub struct CurveID(pub &'static Params);
 
 impl CurveID {
-    pub fn get(&self) -> Curve {
+    pub fn get(self) -> Curve {
         Curve::from(self.0)
     }
 }

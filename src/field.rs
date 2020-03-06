@@ -66,3 +66,15 @@ pub trait Field {
     fn zero(&self) -> Self::Elt;
     fn one(&self) -> Self::Elt;
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum HashID {
+    SHA256,
+    SHA384,
+    SHA512,
+}
+/// HashToField hashes a string msg of any length into an element of a field F.
+/// This function is parametrized by a cryptographic hash function.
+pub trait HashToField<F: Field> {
+    fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> <F as Field>::Elt;
+}

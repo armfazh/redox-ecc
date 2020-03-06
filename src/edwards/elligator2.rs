@@ -1,7 +1,6 @@
 use crate::edwards::Curve as TeCurve;
-use crate::ellipticcurve::{EllipticCurve, RationalMap};
+use crate::ellipticcurve::{EllipticCurve, MapToCurve, RationalMap};
 use crate::field::{Field, Sgn0Endianness};
-use crate::h2c::MapToCurve;
 use crate::montgomery::Curve as MtCurve;
 use crate::montgomery::Ell2 as MtEll2;
 use crate::primefield::FpElt;

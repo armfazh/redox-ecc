@@ -43,3 +43,13 @@ pub trait RationalMap {
     fn push(&self, p: <Self::E0 as EllipticCurve>::Point) -> <Self::E1 as EllipticCurve>::Point;
     fn pull(&self, p: <Self::E1 as EllipticCurve>::Point) -> <Self::E0 as EllipticCurve>::Point;
 }
+
+/// MapToCurve is a deterministic function from an element of the field F
+/// to a point on an elliptic curve E defined over F.
+pub trait MapToCurve {
+    type E: EllipticCurve;
+    fn map(
+        &self,
+        _: <<Self::E as EllipticCurve>::F as Field>::Elt,
+    ) -> <Self::E as EllipticCurve>::Point;
+}
