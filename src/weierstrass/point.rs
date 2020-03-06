@@ -12,6 +12,7 @@ use crate::do_if_eq;
 use crate::ellipticcurve::{EcPoint, EllipticCurve};
 use crate::ops::ScMulRef;
 use crate::primefield::FpElt;
+use crate::field::Sgn0;
 use crate::weierstrass::curve::Curve;
 use crate::weierstrass::scalar::Scalar;
 
@@ -32,6 +33,35 @@ impl ScMulRef<Scalar> for Point {}
 impl EcPoint<Scalar> for Point {
     fn is_zero(&self) -> bool {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
+    }
+    fn serialize(&self, compress: bool) -> Vec<u8> {
+        // normalize the point to ensure that z = 1
+        // clone so that we don't mutate the original point
+        let mut p_normal = self.clone();
+        p_normal.normalize();
+        let coords = &p_normal.c;
+        let x = &coords.x;
+        let y = &coords.y;
+        let mut x_bytes = x.to_bytes_be();
+        let mut y_bytes = y.to_bytes_be();
+        match compress {
+            true => {
+                let s = y.sgn0_le();
+                // if sign == 1: tag = 0x02; elif sign == -1: tag = 0x03
+                let tag = (((s>>1)&0x1)+2) as u8;
+                println!("s: {:?}", s);
+                println!("tag: {:?}", tag);
+                let mut o = vec![tag];
+                o.append(&mut x_bytes);
+                o
+            },
+            _ => {
+                let mut o: Vec<u8> = vec![0x04];
+                o.append(&mut x_bytes);
+                o.append(&mut y_bytes);
+                o
+            }
+        }
     }
 }
 
