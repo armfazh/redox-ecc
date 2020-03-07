@@ -27,7 +27,7 @@ impl SVDW {
             let c2 = -&z * (1u32 / &f2);
             let t0 = (f3 * (&z ^ 2u32)) + &(&f4 * &e.a);
             let mut c3 = (&gz * &t0).sqrt();
-            if c3.sgn0(sgn0) == -1 {
+            if Sgn0::new(sgn0)(&c3) == -1 {
                 c3 = -c3;
             }
             let c4 = (f4 * gz) * (1u32 / &t0);
@@ -69,7 +69,7 @@ impl MapToCurve for SVDW {
     ) -> <Self::E as EllipticCurve>::Point {
         let f = &self.e.f;
         let cmov = FpElt::cmov;
-        let s = self.sgn0;
+        let sgn0 = Sgn0::new(self.sgn0);
         let mut t1 = &u ^ 2u32; //          1.   t1 = u^2
         t1 = t1 * &self.c1; //              2.   t1 = t1 * c1
         let t2 = f.one() + &t1; //          3.   t2 = 1 + t1
@@ -103,9 +103,8 @@ impl MapToCurve for SVDW {
         gx = gx * &x; //                    31.  gx = gx * x
         gx = gx + &self.e.b; //             32.  gx = gx + B
         let mut y = gx.sqrt(); //           33.   y = sqrt(gx)
-        let e3 = u.sgn0(s) == y.sgn0(s); // 34.  e3 = sgn0(u) == sgn0(y)
+        let e3 = sgn0(&u) == sgn0(&y); //   34.  e3 = sgn0(u) == sgn0(y)
         y = cmov(&(-&y), &y, e3); //        35.   y = CMOV(-y, y, e3)
-        let z = f.one();
-        self.e.new_point(ProyCoordinates { x, y, z })
+        self.e.new_point(ProyCoordinates { x, y, z: f.one() })
     }
 }

@@ -1,13 +1,13 @@
-//! `redox_ecc` is a reference implementation of elliptic curve operations.
 //!
-//! The purpose of this library is to provide mathematical operations used in some elliptic curves.
+//! `redox_ecc` is a reference implementation of elliptic curve operations.
+//! The purpose of this library is to provide mathematical operations for elliptic curves.
 //!
 //! # Warning
 //!
-//! This is implementation is **not** protected against any kind of attack, including
+//! This implementation is **not** protected against any kind of attack, including
 //! side-channel attacks. Do not use this code for securing any application.
 //!
-//! # Hash to Curve Example
+//! # Adding Points
 //!
 //! ```
 //!  use redox_ecc::ellipticcurve::EllipticCurve;

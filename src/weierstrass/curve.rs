@@ -21,13 +21,13 @@ use crate::weierstrass::scalar::Scalar;
 /// **Atention** This implementation only supports curves of prime order.
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct Curve {
-    pub f: Fp,
-    pub a: FpElt,
-    pub b: FpElt,
-    pub r: BigUint,
-    pub gx: FpElt,
-    pub gy: FpElt,
-    pub h: BigUint,
+    pub(super) f: Fp,
+    pub(super) a: FpElt,
+    pub(super) b: FpElt,
+    pub(super) r: BigUint,
+    pub(super) gx: FpElt,
+    pub(super) gy: FpElt,
+    pub(super) h: BigUint,
 }
 
 impl EllipticCurve for Curve {
@@ -63,9 +63,9 @@ impl EllipticCurve for Curve {
     fn get_order(&self) -> BigUint {
         self.r.clone()
     }
-    // fn get_field(&self) -> Self::F {
-    //     self.f.clone()
-    // }
+    fn get_field(&self) -> Self::F {
+        self.f.clone()
+    }
     fn get_cofactor(&self) -> BigInt {
         self.h.to_bigint().unwrap()
     }
@@ -103,31 +103,15 @@ pub struct Params {
 impl<'a> std::convert::From<&'a Params> for Curve {
     fn from(params: &'a Params) -> Curve {
         let f = Fp::new(BigUint::from_str(params.p).unwrap());
-        let a = f.from(params.a);
-        let b = f.from(params.b);
-        let gx = f.from(params.gx);
-        let gy = f.from(params.gy);
-        let r = BigUint::from_str(params.r).unwrap();
-        let h = BigUint::from_str(params.h).unwrap();
         Curve {
+            a: f.from(params.a),
+            b: f.from(params.b),
+            r: BigUint::from_str(params.r).unwrap(),
+            h: BigUint::from_str(params.h).unwrap(),
+            gx: f.from(params.gx),
+            gy: f.from(params.gy),
             f,
-            a,
-            b,
-            r,
-            h,
-            gx,
-            gy,
         }
-    }
-}
-
-/// Curve identifier of a well-known curve.
-#[derive(PartialEq, Eq, Copy, Clone)]
-pub struct CurveID(pub &'static Params);
-
-impl CurveID {
-    pub fn get(self) -> Curve {
-        Curve::from(self.0)
     }
 }
 

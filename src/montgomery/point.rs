@@ -54,15 +54,15 @@ impl Point {
         let (t7, t8) = (x1 * z2, x2 * z1);
         let t9 = &t7 + &t8;
         let ta = &t9 + &(&t0 * a_ec);
-        let r = &t5 + &t6;
-        let t = &ta - &t1;
-        let v = t9 * a_ec + &t0 + &t0 + &t0 + &t2;
-        let s = (&t3 - &t4) * s_ec + t0 - t2;
-        let u = (t7 - t8) * s_ec - t3 - t4;
-        let w = (t5 - t6) * s_ec + ta + t1;
-        let x3 = &r * &s - &t * &u;
-        let y3 = t * &w - &v * &s;
-        let z3 = v * u - r * w;
+        let rr = &t5 + &t6;
+        let tt = &ta - &t1;
+        let vv = t9 * a_ec + &t0 + &t0 + &t0 + &t2;
+        let ss = (&t3 - &t4) * s_ec + t0 - t2;
+        let uu = (t7 - t8) * s_ec - t3 - t4;
+        let ww = (t5 - t6) * s_ec + ta + t1;
+        let x3 = &rr * &ss - &tt * &uu;
+        let y3 = tt * &ww - &vv * &ss;
+        let z3 = vv * uu - rr * ww;
         self.e.new_point(ProyCoordinates {
             x: x3,
             y: y3,

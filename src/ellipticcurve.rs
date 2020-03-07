@@ -25,13 +25,14 @@ pub trait EllipticCurve {
     type Scalar: EcScalar;
     type Point: EcPoint<Self::Scalar>;
     type Coordinates;
+    fn identity(&self) -> Self::Point;
     fn new_point(&self, _: Self::Coordinates) -> Self::Point;
     fn new_scalar(&self, _: BigInt) -> Self::Scalar;
-    fn identity(&self) -> Self::Point;
     fn get_generator(&self) -> Self::Point;
     fn is_on_curve(&self, _: &Self::Point) -> bool;
     fn get_order(&self) -> BigUint;
     fn get_cofactor(&self) -> BigInt;
+    fn get_field(&self) -> Self::F;
 }
 
 /// Rational map between two elliptic curves.

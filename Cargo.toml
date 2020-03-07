@@ -22,9 +22,6 @@ impl_ops = "0.1.1"
 num-bigint = "0.2.6"
 num-integer = "0.1.42"
 num-traits = "0.2.11"
-sha2 = "0.8.1"
-hkdf = "0.8.0"
-digest = "0.8.1"
 doc-comment = "0.3.1"
 
 [dev-dependencies]

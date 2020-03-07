@@ -35,10 +35,10 @@ pub trait Sgn0 {
     fn sgn0_be(&self) -> i32;
     fn sgn0_le(&self) -> i32;
     #[inline]
-    fn sgn0(&self, s: Sgn0Endianness) -> i32 {
+    fn new(s: Sgn0Endianness) -> fn(_: &Self) -> i32 {
         match s {
-            Sgn0Endianness::BigEndian => self.sgn0_be(),
-            Sgn0Endianness::LittleEndian => self.sgn0_le(),
+            Sgn0Endianness::BigEndian => Self::sgn0_be,
+            Sgn0Endianness::LittleEndian => Self::sgn0_le,
         }
     }
 }
@@ -65,16 +65,4 @@ pub trait Field {
     fn elt(&self, _: BigInt) -> Self::Elt;
     fn zero(&self) -> Self::Elt;
     fn one(&self) -> Self::Elt;
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum HashID {
-    SHA256,
-    SHA384,
-    SHA512,
-}
-/// HashToField hashes a string msg of any length into an element of a field F.
-/// This function is parametrized by a cryptographic hash function.
-pub trait HashToField<F: Field> {
-    fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> <F as Field>::Elt;
 }

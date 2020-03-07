@@ -13,7 +13,7 @@ fn arith(c: &mut Criterion) {
         let mut g1 = g0.clone();
         let k = ec.new_scalar(BigInt::from(-1));
         c.bench(
-            format!("{}/ec", id.0.name).as_str(),
+            format!("{}/ec", id).as_str(),
             Benchmark::new("add", move |b| b.iter(|| g0 = &g0 + &g0))
                 .with_function("mul", move |b| b.iter(|| g1 = &k * &g1))
                 .sample_size(10),

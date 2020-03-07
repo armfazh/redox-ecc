@@ -52,7 +52,11 @@ impl_op_ex!(-|a: &Scalar, b: &Scalar| -> Scalar {
 impl_op_ex!(*|a: &Scalar, b: &Scalar| -> Scalar {
     do_if_eq!(a.r == b.r, a.red(&a.k * &b.k), ERR_BIN_OP)
 });
-impl_op_ex!(/|a: &Scalar, b: &Scalar| -> Scalar { a * b.inv_mod() });
+impl_op_ex!(/|a: &Scalar, b: &Scalar| -> Scalar {
+    #[allow(clippy::suspicious_arithmetic_impl)] {
+        a * b.inv_mod()
+    }
+});
 impl_op_ex!(-|a: &Scalar| -> Scalar { a.red(-&a.k) });
 
 impl<'a> Div<&'a Scalar> for u32 {
