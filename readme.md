@@ -1,4 +1,6 @@
-## redox-ecc
+# redox-ecc
+
+![Rustico](https://github.com/armfazh/redox-ecc/workflows/Rustico/badge.svg)
 
 The purpose of this library is to provide mathematical operations used in  elliptic curves.
 
