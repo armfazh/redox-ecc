@@ -51,18 +51,18 @@ impl Point {
         let (x1, y1, t1, z1) = (&self.c.x, &self.c.y, &self.c.t, &self.c.z);
         let (x2, y2, t2, z2) = (&p.c.x, &p.c.y, &p.c.t, &p.c.z);
         let (a_ec, d_ec) = (&self.e.a, &self.e.d);
-        let a = x1 * x2; // A = X1 * X2
-        let b = y1 * y2; // B = Y1 * Y2
-        let c = d_ec * t1 * t2; // C = d*T1 * T2
-        let d = z1 * z2; // D = Z1 * Z2
-        let e = (x1 + y1) * (x2 + y2) - &a - &b; // E = (X1 + Y1 ) * (X2 + Y2 ) - A - B
-        let f = &d - &c; // F = D - C
-        let g = d + c; // G = D + C
-        let h = b - a * a_ec; // H = B - a*A
-        let x3 = &e * &f; // X3 = E * F
-        let y3 = &g * &h; // Y3 = G * H
-        let t3 = e * h; // T3 = E * H
-        let z3 = f * g; // Z3 = F * G
+        let aa = x1 * x2; // A = X1 * X2
+        let bb = y1 * y2; // B = Y1 * Y2
+        let cc = d_ec * t1 * t2; // C = d*T1 * T2
+        let dd = z1 * z2; // D = Z1 * Z2
+        let ee = (x1 + y1) * (x2 + y2) - &aa - &bb; // E = (X1 + Y1 ) * (X2 + Y2 ) - A - B
+        let ff = &dd - &cc; // F = D - C
+        let gg = dd + cc; // G = D + C
+        let hh = bb - aa * a_ec; // H = B - a*A
+        let x3 = &ee * &ff; // X3 = E * F
+        let y3 = &gg * &hh; // Y3 = G * H
+        let t3 = ee * hh; // T3 = E * H
+        let z3 = ff * gg; // Z3 = F * G
         self.e.new_point(ProyCoordinates {
             x: x3,
             y: y3,

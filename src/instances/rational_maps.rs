@@ -12,8 +12,9 @@ use crate::primefield::FpElt;
 pub fn edwards25519_to_curve25519() -> impl RationalMap<E0 = TeCurve, E1 = MtCurve> {
     let e0 = EDWARDS25519.get();
     let e1 = CURVE25519.get();
+    let f = e0.get_field();
     let invsqr_d =
-        e0.f.from("6853475219497561581579357271197624642482790079785650197046958215289687604742");
+        f.from("6853475219497561581579357271197624642482790079785650197046958215289687604742");
     Te2Mt25519 { e0, e1, invsqr_d }
 }
 
@@ -53,9 +54,13 @@ impl RationalMap for Te2Mt25519 {
         if p.is_zero() {
             self.e0.identity()
         } else if p.is_two_torsion() {
-            let f = &self.e0.f;
-            let (x, y, t, z) = (f.zero(), -f.one(), f.zero(), f.one());
-            self.e0.new_point(edwards::ProyCoordinates { x, y, t, z })
+            let ff = self.e0.get_field();
+            self.e0.new_point(edwards::ProyCoordinates {
+                x: ff.zero(),
+                y: -ff.one(),
+                t: ff.zero(),
+                z: ff.one(),
+            })
         } else {
             let (x, y, z) = (&p.c.x, &p.c.y, &p.c.z);
             let add = x + z;
@@ -94,8 +99,8 @@ impl RationalMap for Te2Mt448 {
             self.e1.identity()
         } else {
             let (x, y, z) = (&p.c.x, &p.c.y, &p.c.z);
-            let f = &self.e0.f;
-            let f2 = f.from(2);
+            let ff = self.e1.get_field();
+            let f2 = ff.from(2);
             let x2 = x ^ 2u32;
             let y2 = y ^ 2u32;
             let z2 = z ^ 2u32;
@@ -113,8 +118,8 @@ impl RationalMap for Te2Mt448 {
         if p.is_zero() {
             self.e0.identity()
         } else {
-            let f = &self.e0.f;
-            let (f2, f4) = (&f.from(2), &f.from(4));
+            let ff = self.e0.get_field();
+            let (f2, f4) = (&ff.from(2), &ff.from(4));
             let (x, y, z) = (&p.c.x, &p.c.y, &p.c.z);
             let x2 = x ^ 2u32;
             let x3 = &x2 * x;

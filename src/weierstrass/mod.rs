@@ -8,7 +8,7 @@ mod scalar;
 mod sswu;
 mod svdw;
 
-pub use crate::weierstrass::curve::{Curve, CurveID, Params};
+pub use crate::weierstrass::curve::{Curve, Params};
 pub use crate::weierstrass::point::{Point, ProyCoordinates};
 pub use crate::weierstrass::scalar::Scalar;
 pub use crate::weierstrass::sswu::SSWU;

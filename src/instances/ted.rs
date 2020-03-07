@@ -1,9 +1,24 @@
-use crate::edwards::{CurveID, Params};
+use crate::edwards::{Curve, Params};
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct EdCurveID(&'static Params);
+
+impl EdCurveID {
+    #[inline]
+    pub fn get(self) -> Curve {
+        Curve::from(self.0)
+    }
+}
+impl std::fmt::Display for EdCurveID {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0.name)
+    }
+}
 
 /// EDWARDS25519 is the edwards25519 elliptic curve as specified in RFC-7748.
-pub static EDWARDS25519: CurveID = CurveID(&EDWARDS25519_PARAMS);
+pub static EDWARDS25519: EdCurveID = EdCurveID(&EDWARDS25519_PARAMS);
 /// EDWARDS448 is the edwards448 elliptic curve as specified in RFC-7748.
-pub static EDWARDS448: CurveID = CurveID(&EDWARDS448_PARAMS);
+pub static EDWARDS448: EdCurveID = EdCurveID(&EDWARDS448_PARAMS);
 
 static EDWARDS25519_PARAMS: &Params = &Params {
     name: "edwards25519",

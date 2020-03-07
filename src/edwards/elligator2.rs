@@ -19,9 +19,8 @@ impl Ell2 {
     ) -> Ell2 {
         let (map_to_curve, ratmap) = match ratmap {
             None => {
-                // let mt_curve = MtCurve::from(e);
-                // Box::new(MtEll2::new(mt_curve, z, sgn0))
-                unimplemented!()
+                // If no ratmap is provided, it must use the cannonical birational map.
+                todo!()
             }
             Some(r) => {
                 if r.domain() != e {

@@ -2,13 +2,11 @@
 //!
 //! The primefield module is meant to be used for bar.
 
-use hkdf::Hkdf;
 use impl_ops::impl_op_ex;
-use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
+use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
-use sha2::{Sha256, Sha384, Sha512};
 
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -17,9 +15,7 @@ use std::ops::{BitXor, Div};
 use std::rc::Rc;
 
 use crate::do_if_eq;
-use crate::field::{
-    CMov, Field, FieldElement, FromFactory, HashID, HashToField, IntoFactory, Sgn0, Sqrt,
-};
+use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};
 
 struct Params {
     p: BigInt,
@@ -153,7 +149,12 @@ impl_op_ex!(-|a: &FpElt, b: &FpElt| -> FpElt {
 impl_op_ex!(*|a: &FpElt, b: &FpElt| -> FpElt {
     do_if_eq!(a.f == b.f, a.red(&a.n * &b.n), ERR_BIN_OP)
 });
-impl_op_ex!(/|a: &FpElt, b: &FpElt| -> FpElt { a * b.inv_mod() });
+
+impl_op_ex!(/|a: &FpElt, b: &FpElt| -> FpElt {
+    #[allow(clippy::suspicious_arithmetic_impl)] {
+        a * b.inv_mod()
+    }
+});
 impl_op_ex!(-|a: &FpElt| -> FpElt { a.red(-&a.n) });
 impl_op_ex!(^|a: &FpElt, b: u32| -> FpElt {
     do_if_eq!(b == 2u32, a * a, ERR_EXP_SQR_OP)
@@ -303,24 +304,6 @@ impl std::fmt::Display for FpElt {
 impl std::fmt::Display for Fp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "GF({})", &self.0.p)
-    }
-}
-
-impl HashToField<Fp> for Fp {
-    fn hash(&self, h: HashID, msg: &[u8], dst: &[u8], ctr: u8, l: usize) -> FpElt {
-        let info: [u8; 5] = [b'H', b'2', b'C', ctr, 1u8];
-        let mut vmsg = msg.to_vec();
-        vmsg.push(0u8);
-        let mut v = Vec::new();
-        v.resize(l, 0);
-        match match h {
-            HashID::SHA256 => Hkdf::<Sha256>::new(Some(dst), &vmsg).expand(&info, &mut v),
-            HashID::SHA384 => Hkdf::<Sha384>::new(Some(dst), &vmsg).expand(&info, &mut v),
-            HashID::SHA512 => Hkdf::<Sha512>::new(Some(dst), &vmsg).expand(&info, &mut v),
-        } {
-            Ok(_) => self.elt(BigInt::from_bytes_be(Sign::Plus, &v)),
-            Err(e) => panic!(e),
-        }
     }
 }
 

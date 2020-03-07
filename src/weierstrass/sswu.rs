@@ -44,30 +44,29 @@ impl MapToCurve for SSWU {
     ) -> <Self::E as EllipticCurve>::Point {
         let f = &self.e.f;
         let cmov = FpElt::cmov;
-        let s = self.sgn0;
-        let mut t1 = &u ^ 2u32; //          0.   t1 = u^2
-        t1 = &self.z * &t1; //              1.   t1 = Z * u^2
-        let mut t2 = &t1 ^ 2u32; //         2.   t2 = t1^2
-        let mut x1 = &t1 + &t2; //          3.   x1 = t1 + t2
-        x1 = 1u32 / &x1; //                 4.   x1 = inv0(x1)
-        let e1 = x1.is_zero(); //           5.   e1 = x1 == 0
-        x1 = x1 + f.one(); //               6.   x1 = x1 + 1
-        x1 = cmov(&x1, &self.c2, e1); //    7.   x1 = CMOV(x1, c2, e1)
-        x1 = x1 * &self.c1; //              8.   x1 = x1 * c1
-        let mut gx1 = &x1 ^ 2u32; //        9.  gx1 = x1^2
-        gx1 = gx1 + &self.e.a; //           10. gx1 = gx1 + A
-        gx1 = gx1 * &x1; //                 11. gx1 = gx1 * x1
-        gx1 = gx1 + &self.e.b; //           12. gx1 = gx1 + B
-        let x2 = &t1 * &x1; //              13.  x2 = t1 * x1
-        t2 = t1 * t2; //                    14.  t2 = t1 * t2
-        let gx2 = &gx1 * &t2; //            15. gx2 = gx1 * t2
-        let e2 = gx1.is_square(); //        16.  e2 = is_square(gx1)
-        let x = cmov(&x2, &x1, e2); //      17.   x = CMOV(x2, x1, e2)
-        let y2 = cmov(&gx2, &gx1, e2); //   18.  y2 = CMOV(gx2, gx1, e2)
-        let mut y = y2.sqrt(); //           19.   y = sqrt(y2)
-        let e3 = u.sgn0(s) == y.sgn0(s); // 20.  e3 = sgn0(u) == sgn0(y)
-        y = cmov(&(-&y), &y, e3); //        21.   y = CMOV(-y, y, e3)
-        let z = f.one();
-        self.e.new_point(ProyCoordinates { x, y, z })
+        let sgn0 = Sgn0::new(self.sgn0);
+        let mut t1 = &u ^ 2u32; //        0.   t1 = u^2
+        t1 = &self.z * &t1; //            1.   t1 = Z * u^2
+        let mut t2 = &t1 ^ 2u32; //       2.   t2 = t1^2
+        let mut x1 = &t1 + &t2; //        3.   x1 = t1 + t2
+        x1 = 1u32 / &x1; //               4.   x1 = inv0(x1)
+        let e1 = x1.is_zero(); //         5.   e1 = x1 == 0
+        x1 = x1 + f.one(); //             6.   x1 = x1 + 1
+        x1 = cmov(&x1, &self.c2, e1); //  7.   x1 = CMOV(x1, c2, e1)
+        x1 = x1 * &self.c1; //            8.   x1 = x1 * c1
+        let mut gx1 = &x1 ^ 2u32; //      9.  gx1 = x1^2
+        gx1 = gx1 + &self.e.a; //         10. gx1 = gx1 + A
+        gx1 = gx1 * &x1; //               11. gx1 = gx1 * x1
+        gx1 = gx1 + &self.e.b; //         12. gx1 = gx1 + B
+        let x2 = &t1 * &x1; //            13.  x2 = t1 * x1
+        t2 = t1 * t2; //                  14.  t2 = t1 * t2
+        let gx2 = &gx1 * &t2; //          15. gx2 = gx1 * t2
+        let e2 = gx1.is_square(); //      16.  e2 = is_square(gx1)
+        let x = cmov(&x2, &x1, e2); //    17.   x = CMOV(x2, x1, e2)
+        let y2 = cmov(&gx2, &gx1, e2); // 18.  y2 = CMOV(gx2, gx1, e2)
+        let mut y = y2.sqrt(); //         19.   y = sqrt(y2)
+        let e3 = sgn0(&u) == sgn0(&y); // 20.  e3 = sgn0(u) == sgn0(y)
+        y = cmov(&(-&y), &y, e3); //      21.   y = CMOV(-y, y, e3)
+        self.e.new_point(ProyCoordinates { x, y, z: f.one() })
     }
 }
