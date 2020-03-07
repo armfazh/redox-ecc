@@ -1,31 +1,31 @@
 use crate::edwards;
-use crate::edwards::Curve as TeCurve;
+use crate::edwards::Curve as EdCurve;
 use crate::edwards::Point as TePoint;
 use crate::ellipticcurve::{EcPoint, EllipticCurve, RationalMap};
 use crate::field::{Field, FromFactory};
-use crate::instances::{CURVE25519, CURVE448, EDWARDS25519, EDWARDS448};
+use crate::instances::{GetCurve, CURVE25519, CURVE448, EDWARDS25519, EDWARDS448};
 use crate::montgomery;
 use crate::montgomery::Curve as MtCurve;
 use crate::montgomery::Point as MtPoint;
 use crate::primefield::FpElt;
 
-pub fn edwards25519_to_curve25519() -> impl RationalMap<E0 = TeCurve, E1 = MtCurve> {
+pub fn edwards25519_to_curve25519() -> impl RationalMap<E0 = EdCurve, E1 = MtCurve> {
     let e0 = EDWARDS25519.get();
     let e1 = CURVE25519.get();
     let f = e0.get_field();
     let invsqr_d =
         f.from("6853475219497561581579357271197624642482790079785650197046958215289687604742");
-    Te2Mt25519 { e0, e1, invsqr_d }
+    Ed2Mt25519 { e0, e1, invsqr_d }
 }
 
-struct Te2Mt25519 {
-    e0: TeCurve,
+struct Ed2Mt25519 {
+    e0: EdCurve,
     e1: MtCurve,
     invsqr_d: FpElt,
 }
 
-impl RationalMap for Te2Mt25519 {
-    type E0 = TeCurve;
+impl RationalMap for Ed2Mt25519 {
+    type E0 = EdCurve;
     type E1 = MtCurve;
 
     fn domain(&self) -> Self::E0 {
@@ -79,13 +79,19 @@ impl RationalMap for Te2Mt25519 {
     }
 }
 
-struct Te2Mt448 {
-    e0: TeCurve,
+pub fn edwards448_to_curve448() -> impl RationalMap<E0 = EdCurve, E1 = MtCurve> {
+    let e0 = EDWARDS448.get();
+    let e1 = CURVE448.get();
+    Ed4isoMt448 { e0, e1 }
+}
+
+struct Ed4isoMt448 {
+    e0: EdCurve,
     e1: MtCurve,
 }
 
-impl RationalMap for Te2Mt448 {
-    type E0 = TeCurve;
+impl RationalMap for Ed4isoMt448 {
+    type E0 = EdCurve;
     type E1 = MtCurve;
 
     fn domain(&self) -> Self::E0 {
@@ -145,10 +151,4 @@ impl RationalMap for Te2Mt448 {
             })
         }
     }
-}
-
-pub fn edwards448_to_curve448() -> impl RationalMap<E0 = TeCurve, E1 = MtCurve> {
-    let e0 = EDWARDS448.get();
-    let e1 = CURVE448.get();
-    Te2Mt448 { e0, e1 }
 }

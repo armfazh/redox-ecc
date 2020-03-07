@@ -1,14 +1,17 @@
+use crate::instances::GetCurve;
 use crate::weierstrass::{Curve, Params};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub struct WeCurveID(&'static Params);
 
-impl WeCurveID {
+impl GetCurve for WeCurveID {
+    type E = Curve;
     #[inline]
-    pub fn get(self) -> Curve {
+    fn get(&self) -> Self::E {
         Curve::from(self.0)
     }
 }
+
 impl std::fmt::Display for WeCurveID {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.name)

@@ -1,14 +1,17 @@
+use crate::instances::GetCurve;
 use crate::montgomery::{Curve, Params};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub struct MtCurveID(&'static Params);
 
-impl MtCurveID {
+impl GetCurve for MtCurveID {
+    type E = Curve;
     #[inline]
-    pub fn get(self) -> Curve {
+    fn get(&self) -> Self::E {
         Curve::from(self.0)
     }
 }
+
 impl std::fmt::Display for MtCurveID {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.name)

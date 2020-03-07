@@ -10,7 +10,7 @@
 //! # Adding Points
 //!
 //! ```
-//!  use redox_ecc::ellipticcurve::EllipticCurve;
+//!  use redox_ecc::ellipticcurve::{EllipticCurve, GetCurve};
 //!  use redox_ecc::instances::{CURVE25519, P256};
 //!
 //!  let ec = P256.get();

@@ -1,5 +1,5 @@
 use redox_ecc::ellipticcurve::EllipticCurve;
-use redox_ecc::instances::{CURVE25519, P256, P384};
+use redox_ecc::instances::{GetCurve, CURVE25519, P256, P384};
 
 use redox_ecc::version;
 
