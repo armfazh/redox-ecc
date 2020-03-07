@@ -4,7 +4,7 @@ use crate::num_bigint::BigInt;
 use criterion::{criterion_group, criterion_main, Benchmark, Criterion};
 
 use redox_ecc::ellipticcurve::EllipticCurve;
-use redox_ecc::instances::{P256, P384, P521};
+use redox_ecc::instances::{GetCurve, P256, P384, P521};
 
 fn arith(c: &mut Criterion) {
     for id in [P256, P384, P521].iter() {

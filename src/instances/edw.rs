@@ -1,14 +1,17 @@
 use crate::edwards::{Curve, Params};
+use crate::instances::GetCurve;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub struct EdCurveID(&'static Params);
 
-impl EdCurveID {
+impl GetCurve for EdCurveID {
+    type E = Curve;
     #[inline]
-    pub fn get(self) -> Curve {
+    fn get(&self) -> Self::E {
         Curve::from(self.0)
     }
 }
+
 impl std::fmt::Display for EdCurveID {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0.name)
