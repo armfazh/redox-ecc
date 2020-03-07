@@ -5,8 +5,8 @@ authors = ["Armando Faz Hernandez"]
 edition = "2018"
 description = "elliptic curve arithmetic"
 keywords = ["elliptic curve", "math", "crypto", "ecc", "elliptic", "weierstrass"]
-categories = ["cryptography", "no-std"]
-readme = "README.md"
+categories = ["cryptography", "math"]
+readme = "readme.md"
 license = "BSD-3-Clause"
 
 [[bench]]
