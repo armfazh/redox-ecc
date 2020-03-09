@@ -3,18 +3,19 @@
 //! The curve module is meant to be used for bar.
 
 extern crate num_bigint;
-use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_bigint::{BigInt, BigUint, ToBigInt, Sign};
 
 use num_traits::identities::Zero;
 
 use std::str::FromStr;
+use std::io::{Error,ErrorKind};
 
 use crate::do_if_eq;
 use crate::ellipticcurve::EllipticCurve;
-use crate::field::{Field, FromFactory};
+use crate::field::{Field, FromFactory, Sgn0, Sqrt};
+use crate::primefield::{Fp, FpElt};
 use crate::montgomery::point::{Point, ProyCoordinates};
 use crate::montgomery::scalar::Scalar;
-use crate::primefield::{Fp, FpElt};
 
 /// This is an elliptic curve defined in Montgomery from and defined by the equation:
 /// by^2=x^3+ax^2+x.
@@ -75,8 +76,54 @@ impl EllipticCurve for Curve {
             z: self.f.one(),
         })
     }
-    fn deserialize(&self, _: &[u8]) -> Result<Self::Point,std::io::Error> {
-        panic!("unimplemented!");
+    fn deserialize(&self, buf: &[u8]) -> Result<Self::Point,std::io::Error> {
+        let p = self.f.get_modulus();
+        let max_bytes = (p.bits()+7)/8;
+        if buf.len() == 0 {
+            return Err(Error::new(ErrorKind::Other, "Input buffer is empty."));
+        }
+        let tag = buf[0];
+        match tag {
+            0x04 => {
+                if buf.len() != 2*max_bytes+1 {
+                    return Err(Error::new(ErrorKind::Other, "Invalid bytes for deserialization"));
+                }
+                let x = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]));
+                let y = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[max_bytes+1..]));
+                Ok(self.new_point(ProyCoordinates {
+                    x: x,
+                    y: y,
+                    z: self.f.one()
+                }))
+            }
+            0x02 | 0x03 => {
+                if buf.len() != max_bytes+1 {
+                    return Err(Error::new(ErrorKind::Other, "Invalid bytes for deserialization"));
+                }
+                // recompute y coordinate
+                let one = self.f.one();
+                let x = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]));
+                let x_a = &x + &self.a;
+                let xx_ax = &x_a * &x;
+                let xx_ax_1 = &xx_ax + &one;
+                let byy = &xx_ax_1 * &x;
+                let b_inv = &one/&self.b;
+                let yy = &byy * b_inv;
+                let y_sqrt = yy.sqrt();
+                let s = y_sqrt.sgn0_le();
+                let deser_tag = (((s>>1)&0x1)+2) as u8;
+                let mut y = y_sqrt;
+                if tag != deser_tag {
+                    y = -y;
+                }
+                Ok(self.new_point(ProyCoordinates {
+                    x: x,
+                    y: y,
+                    z: self.f.one()
+                }))
+            }
+            _ => Err(Error::new(ErrorKind::Other, "Invalid tag specified"))
+        }
     }
 }
 
@@ -120,3 +167,40 @@ impl<'a> std::convert::From<&'a Params> for Curve {
 }
 
 const ERR_ECC_NEW: &str = "not valid point";
+
+// tests for ser/deser
+#[cfg(test)]
+mod tests {
+    use crate::instances::{CURVE25519,CURVE448};
+    use crate::ellipticcurve::{EllipticCurve,EcPoint};
+
+    #[test]
+    fn point_serialization() {
+        for &id in [CURVE25519,CURVE448].iter() {
+            let ec = id.get();
+            let gen = ec.get_generator();
+            let ser = gen.serialize(false);
+            let deser = ec.deserialize(&ser).unwrap();
+            assert!(ec.is_on_curve(&deser), "decompressed point validity check for {:?}", id.0.name);
+            assert!(
+                gen == deser,
+                "decompressed point equality check for {:?}", id.0.name
+            );
+        }
+    }
+
+    #[test]
+    fn point_serialization_compressed() {
+        for &id in [CURVE25519,CURVE448].iter() {
+            let ec = id.get();
+            let gen = ec.get_generator();
+            let ser = gen.serialize(true);
+            let deser = ec.deserialize(&ser).unwrap();
+            assert!(ec.is_on_curve(&deser), "compressed point validity check for {:?}", id.0.name);
+            assert!(
+                gen == deser,
+                "compressed point equality check for {:?}", id.0.name
+            );
+        }
+    }
+}
