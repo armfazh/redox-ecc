@@ -171,7 +171,7 @@ const ERR_ECC_NEW: &str = "not valid point";
 // tests for ser/deser
 #[cfg(test)]
 mod tests {
-    use crate::instances::{CURVE25519,CURVE448};
+    use crate::instances::{CURVE25519,CURVE448,GetCurve};
     use crate::ellipticcurve::{EllipticCurve,EcPoint};
 
     #[test]
@@ -181,10 +181,10 @@ mod tests {
             let gen = ec.get_generator();
             let ser = gen.serialize(false);
             let deser = ec.deserialize(&ser).unwrap();
-            assert!(ec.is_on_curve(&deser), "decompressed point validity check for {:?}", id.0.name);
+            assert!(ec.is_on_curve(&deser), "decompressed point validity check for {}", id);
             assert!(
                 gen == deser,
-                "decompressed point equality check for {:?}", id.0.name
+                "decompressed point equality check for {}", id
             );
         }
     }
@@ -196,10 +196,10 @@ mod tests {
             let gen = ec.get_generator();
             let ser = gen.serialize(true);
             let deser = ec.deserialize(&ser).unwrap();
-            assert!(ec.is_on_curve(&deser), "compressed point validity check for {:?}", id.0.name);
+            assert!(ec.is_on_curve(&deser), "compressed point validity check for {}", id);
             assert!(
                 gen == deser,
-                "compressed point equality check for {:?}", id.0.name
+                "compressed point equality check for {}", id
             );
         }
     }
