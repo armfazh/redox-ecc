@@ -13,7 +13,6 @@ use std::cmp::Ordering;
 use std::ops;
 use std::ops::{BitXor, Div};
 use std::rc::Rc;
-use std::fmt;
 
 use crate::do_if_eq;
 use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};

@@ -17,7 +17,7 @@ where
     T: EcScalar,
 {
     fn is_zero(&self) -> bool;
-    fn serialize(&self, _: bool, _: &mut [u8]);
+    fn serialize(&self, _: bool) -> Vec<u8>;
 }
 
 /// Curve trait allows to implement elliptic curve operations.
