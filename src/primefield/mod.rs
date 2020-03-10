@@ -113,7 +113,7 @@ pub struct FpElt {
 }
 
 impl FpElt {
-    /// serializes the field element into bytes
+    /// serializes the field element into big-endian bytes
     pub fn to_bytes_be(&self) -> Vec<u8> {
         let field_len = (self.f.p.bits()+7)/8;
         let mut bytes = self.n.to_biguint().unwrap().to_bytes_be();
@@ -124,6 +124,12 @@ impl FpElt {
             out = bytes;
         }
         out
+    }
+    /// serializes the field element into little-endian bytes
+    pub fn to_bytes_le(&self) -> Vec<u8> {
+        let mut bytes = self.to_bytes_be();
+        bytes.reverse();
+        bytes
     }
 }
 

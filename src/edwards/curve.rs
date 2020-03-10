@@ -15,8 +15,6 @@ use crate::ellipticcurve::EllipticCurve;
 use crate::field::{Field, FromFactory, Sqrt, Sgn0};
 use crate::primefield::{Fp, FpElt};
 
-use crate::instances::{EDWARDS25519,GetCurve};
-
 /// This is an elliptic curve defined in the twisted Edwards model and defined by the equation:
 /// ax^2+y^2=1+dx^2y^2.
 ///
@@ -102,12 +100,7 @@ impl EllipticCurve for Curve {
         let yy = &y*&y;
         let minus_one = -self.f.one();
         let u = &yy + &minus_one;
-        // v is computed differently for c25519 and c448
-        let mut val = minus_one.clone();
-        if self == &EDWARDS25519.get() {
-            val = -val;
-        }
-        let v = (&self.d * &yy) + val;
+        let v = (&self.d * &yy) + (-&self.a);
         let u_inv_v = u/v;
         let x_sqrt = u_inv_v.sqrt();
 
@@ -115,7 +108,7 @@ impl EllipticCurve for Curve {
         if x_sqrt == self.f.zero() && x_0 == 0x01 {
             return Err(Error::new(ErrorKind::Other, "Failed decoding on square root"));
         }
-        let tag = (((x_sqrt.sgn0_le()>>1)&0x01)+2) as u8;
+        let tag = ((x_sqrt.sgn0_le()>>1)&0x01) as u8;
         let mut x = x_sqrt;
         if tag != x_0 {
             x = -x;

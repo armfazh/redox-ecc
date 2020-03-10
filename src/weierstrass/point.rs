@@ -39,6 +39,11 @@ impl EcPoint<Scalar> for Point {
         // clone so that we don't mutate the original point
         let mut p_normal = self.clone();
         p_normal.normalize();
+        // if the point is the point at infinity, then return a single
+        // zeroed byte
+        if p_normal == p_normal.e.identity() {
+            return vec![0];
+        }
         let coords = &p_normal.c;
         let x = &coords.x;
         let y = &coords.y;
