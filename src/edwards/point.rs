@@ -32,13 +32,15 @@ impl EcPoint<Scalar> for Point {
     }
     // based on https://tools.ietf.org/html/rfc8032#section-5.2.2
     fn serialize(&self, _: bool) -> Vec<u8> {
-        let x = &self.c.x;
-        let y = &self.c.y;
+        let mut p_normal = self.clone();
+        p_normal.normalize();
+        let coords = p_normal.c;
+        let x = &coords.x;
+        let y = &coords.y;
         // negative == odd
         let x_0 = (((x.sgn0_le()>>1)&0x01)<<7) as u8;
-        let mut enc = y.to_bytes_be();
+        let mut enc = y.to_bytes_le();
         enc[0] = enc[0] | x_0;
-        enc.reverse(); // le
         enc
     }
 }

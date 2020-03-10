@@ -5,7 +5,7 @@
 extern crate num_bigint;
 use num_bigint::{BigInt, BigUint, ToBigInt, Sign};
 
-use num_traits::identities::Zero;
+use num_traits::identities::{Zero,One};
 
 use std::str::FromStr;
 use std::io::{Error,ErrorKind};
@@ -84,13 +84,29 @@ impl EllipticCurve for Curve {
             return Err(Error::new(ErrorKind::Other, "Input buffer is empty."));
         }
         let tag = buf[0];
+        // check x coordinate is in the valid range, Sign::Plus => > 0
+        let x_val = BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]);
+        if x_val > &p-&BigInt::one() {
+            return Err(Error::new(ErrorKind::Other, "Invalid x coordinate"));
+        }
         match tag {
+            0x00 => {
+                // return point of infinity
+                if buf.len() != 1 {
+                    return Err(Error::new(ErrorKind::Other, "Point at infinity should just be a single zero byte"));
+                }
+                Ok(self.identity())
+            },
             0x04 => {
                 if buf.len() != 2*max_bytes+1 {
                     return Err(Error::new(ErrorKind::Other, "Invalid bytes for deserialization"));
                 }
-                let x = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]));
-                let y = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[max_bytes+1..]));
+                let x = self.f.elt(x_val);
+                let y_val = BigInt::from_bytes_be(Sign::Plus, &buf[max_bytes+1..]);
+                if y_val > &p-&BigInt::one() {
+                    return Err(Error::new(ErrorKind::Other, "Invalid y coordinate"));
+                }
+                let y = self.f.elt(y_val);
                 Ok(self.new_point(ProyCoordinates {
                     x: x,
                     y: y,
@@ -102,7 +118,7 @@ impl EllipticCurve for Curve {
                     return Err(Error::new(ErrorKind::Other, "Invalid bytes for deserialization"));
                 }
                 // recompute y coordinate
-                let x = self.f.elt(BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]));
+                let x = self.f.elt(x_val);
                 let xx = &x * &x;
                 let xx_a = &xx + &self.a;
                 let xxx_ax = &xx_a * &x;
