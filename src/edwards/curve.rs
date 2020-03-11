@@ -100,7 +100,7 @@ impl EllipticCurve for Curve {
         let yy = &y*&y;
         let minus_one = -self.f.one();
         let u = &yy + &minus_one;
-        let v = (&self.d * &yy) + (-&self.a);
+        let v = (&self.d * &yy)  - &self.a;
         let u_inv_v = u/v;
         let x_sqrt = u_inv_v.sqrt();
 

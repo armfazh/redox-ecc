@@ -86,7 +86,7 @@ impl EllipticCurve for Curve {
         let tag = buf[0];
         // check x coordinate is in the valid range, Sign::Plus => > 0
         let x_val = BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]);
-        if x_val > &p-&BigInt::one() {
+        if x_val >= &p {
             return Err(Error::new(ErrorKind::Other, "Invalid x coordinate"));
         }
         match tag {

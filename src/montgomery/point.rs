@@ -36,7 +36,7 @@ impl EcPoint<Scalar> for Point {
         p_normal.normalize();
         // if the point is the point at infinity, then return a single
         // zeroed byte
-        if p_normal == p_normal.e.identity() {
+        if p_normal.is_zero() {
             return vec![0];
         }
         let coords = &p_normal.c;
