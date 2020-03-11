@@ -40,7 +40,8 @@ impl EcPoint<Scalar> for Point {
         // negative == odd
         let x_0 = (((x.sgn0_le()>>1)&0x01)<<7) as u8;
         let mut enc = y.to_bytes_le();
-        enc[0] = enc[0] | x_0;
+        let last = enc.len()-1;
+        enc[last] = enc[last] | x_0;
         enc
     }
 }
