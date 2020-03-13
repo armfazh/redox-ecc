@@ -5,7 +5,7 @@
 extern crate num_bigint;
 use num_bigint::{BigInt, BigUint, ToBigInt, Sign};
 
-use num_traits::identities::{Zero,One};
+use num_traits::identities::Zero;
 
 use std::str::FromStr;
 use std::io::{Error,ErrorKind};
@@ -86,7 +86,7 @@ impl EllipticCurve for Curve {
         let tag = buf[0];
         // check x coordinate is in the valid range, Sign::Plus => > 0
         let x_val = BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes+1]);
-        if x_val >= &p {
+        if x_val >= p {
             return Err(Error::new(ErrorKind::Other, "Invalid x coordinate"));
         }
         match tag {
@@ -103,7 +103,7 @@ impl EllipticCurve for Curve {
                 }
                 let x = self.f.elt(x_val);
                 let y_val = BigInt::from_bytes_be(Sign::Plus, &buf[max_bytes+1..]);
-                if y_val > &p-&BigInt::one() {
+                if y_val >= p {
                     return Err(Error::new(ErrorKind::Other, "Invalid y coordinate"));
                 }
                 let y = self.f.elt(y_val);
