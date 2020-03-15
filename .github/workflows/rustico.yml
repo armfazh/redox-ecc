@@ -1,6 +1,12 @@
 name: Rustico
 
-on: [pull_request_review]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   Testing:
