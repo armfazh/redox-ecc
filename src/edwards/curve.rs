@@ -11,7 +11,7 @@ use std::io::{Error,ErrorKind};
 use crate::do_if_eq;
 use crate::edwards::point::{Point, ProyCoordinates};
 use crate::edwards::scalar::Scalar;
-use crate::ellipticcurve::EllipticCurve;
+use crate::ellipticcurve::{EllipticCurve,Decode};
 use crate::field::{Field, FromFactory, Sqrt, Sgn0};
 use crate::primefield::{Fp, FpElt};
 
@@ -82,9 +82,16 @@ impl EllipticCurve for Curve {
             z: self.f.one(),
         })
     }
+}
+
+impl Decode for Curve {
+    type Deser = Point;
     // based on https://tools.ietf.org/html/rfc8032#section-5.2.3
-    fn deserialize(&self, buf: &[u8]) -> Result<Self::Point,Error> {
+    fn decode(&self, buf: &[u8]) -> Result<Self::Deser,Error> {
         // step 1
+        if buf.len() == 0 {
+            return Err(Error::new(ErrorKind::Other, "Input buffer is empty."));
+        }
         let last_byte = buf.len()-1;
         let x_0 = (buf[last_byte]>>7)&0x01;
         let mut y_bytes = buf.to_vec();
@@ -165,35 +172,22 @@ const ERR_ECC_NEW: &str = "not valid point";
 #[cfg(test)]
 mod tests {
     use crate::instances::{EDWARDS25519, EDWARDS448, GetCurve};
-    use crate::ellipticcurve::{EllipticCurve,EcPoint};
-
+    use crate::ellipticcurve::{EllipticCurve, Encode, Decode};
+    use crate::field::Field;
 
     #[test]
     fn point_serialization() {
         for &id in [EDWARDS25519, EDWARDS448].iter() {
             let ec = id.get();
+            let modulus = ec.get_field().get_modulus();
             let gen = ec.get_generator();
-            let ser = gen.serialize(false);
-            let deser = ec.deserialize(&ser).unwrap();
+            let ser = gen.encode(false); // compression does not exist
+            assert_eq!(ser.len(), (modulus.bits()+7)/8);
+            let deser = ec.decode(&ser).unwrap();
             assert!(ec.is_on_curve(&deser), "decompressed point validity check for {}", id);
             assert!(
                 gen == deser,
                 "decompressed point equality check for {}", id
-            );
-        }
-    }
-
-    #[test]
-    fn point_serialization_compressed() {
-        for &id in [EDWARDS25519, EDWARDS448].iter() {
-            let ec = id.get();
-            let gen = ec.get_generator();
-            let ser = gen.serialize(true);
-            let deser = ec.deserialize(&ser).unwrap();
-            assert!(ec.is_on_curve(&deser), "compressed point validity check for {}", id);
-            assert!(
-                gen == deser,
-                "compressed point equality check for {}", id
             );
         }
     }

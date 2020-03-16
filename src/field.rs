@@ -7,7 +7,7 @@ use num_traits::identities::{One, Zero};
 use std::fmt::Display;
 use std::ops::BitXor;
 
-use crate::ops::{AddRef, DivRef, MulRef, SubRef};
+use crate::ops::{AddRef, DivRef, MulRef, SubRef, Serialize};
 
 pub trait FromFactory<T: Sized>: Field {
     fn from(&self, _: T) -> <Self as Field>::Elt;
@@ -55,6 +55,7 @@ pub trait CMov: Clone {
 
 pub trait FieldElement:
     Display + PartialEq + Zero + One + AddRef + SubRef + MulRef + DivRef + BitXor<u32>
+    + Serialize
 {
 }
 

@@ -7,21 +7,33 @@ use num_bigint::{BigInt, BigUint};
 use std::fmt::Display;
 
 use crate::field::Field;
-use crate::ops::{AddRef, DivRef, MulRef, NegRef, ScMulRef, SubRef};
+use crate::ops::{AddRef, DivRef, MulRef, NegRef, ScMulRef, SubRef, Serialize};
 /// EcScalar models the behaviour of a scalar to multiply points.
-pub trait EcScalar: Display + AddRef + SubRef + MulRef + DivRef + NegRef {}
+pub trait EcScalar: Display + AddRef + SubRef + MulRef + DivRef + NegRef + Serialize {}
 
 /// EcPoint models the behaviour of a point on an elliptic curve.
-pub trait EcPoint<T>: Display + AddRef + SubRef + NegRef + ScMulRef<T>
+pub trait EcPoint<T>: Display + AddRef + SubRef + NegRef + ScMulRef<T> + Encode
 where
     T: EcScalar,
 {
     fn is_zero(&self) -> bool;
-    fn serialize(&self, _: bool) -> Vec<u8>;
+}
+
+/// Encode provides functionality for encoding elliptic curve points as
+/// octet-strings
+pub trait Encode {
+    fn encode(&self, compress: bool) -> Vec<u8>;
+}
+
+/// Decode provides functionality for decoding octet-strings into
+/// elliptic curve points
+pub trait Decode {
+    type Deser;
+    fn decode(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
 }
 
 /// Curve trait allows to implement elliptic curve operations.
-pub trait EllipticCurve {
+pub trait EllipticCurve: Decode {
     type F: Field;
     type Scalar: EcScalar;
     type Point: EcPoint<Self::Scalar>;
@@ -34,7 +46,6 @@ pub trait EllipticCurve {
     fn get_order(&self) -> BigUint;
     fn get_cofactor(&self) -> BigInt;
     fn get_field(&self) -> Self::F;
-    fn deserialize(&self, _: &[u8]) -> Result<Self::Point,std::io::Error>;
 }
 
 /// Rational map between two elliptic curves.

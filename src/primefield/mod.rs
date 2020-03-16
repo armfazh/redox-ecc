@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 use crate::do_if_eq;
 use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};
+use crate::ops::Serialize;
 
 struct Params {
     p: BigInt,
@@ -112,9 +113,9 @@ pub struct FpElt {
     f: Rc<Params>,
 }
 
-impl FpElt {
+impl Serialize for FpElt {
     /// serializes the field element into big-endian bytes
-    pub fn to_bytes_be(&self) -> Vec<u8> {
+    fn to_bytes_be(&self) -> Vec<u8> {
         let field_len = (self.f.p.bits()+7)/8;
         let mut bytes = self.n.to_biguint().unwrap().to_bytes_be();
         let mut out = vec![0; field_len-bytes.len()];
@@ -126,7 +127,7 @@ impl FpElt {
         out
     }
     /// serializes the field element into little-endian bytes
-    pub fn to_bytes_le(&self) -> Vec<u8> {
+    fn to_bytes_le(&self) -> Vec<u8> {
         let mut bytes = self.to_bytes_be();
         bytes.reverse();
         bytes

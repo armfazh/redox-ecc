@@ -5,12 +5,13 @@ use num_traits::identities::{One, Zero};
 use std::ops;
 
 use crate::do_if_eq;
-use crate::ellipticcurve::{EcPoint, EllipticCurve};
+use crate::ellipticcurve::{EcPoint, EllipticCurve, Encode};
 use crate::montgomery::curve::Curve;
 use crate::montgomery::scalar::Scalar;
 use crate::ops::ScMulRef;
 use crate::primefield::FpElt;
 use crate::field::Sgn0;
+use crate::ops::Serialize;
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
@@ -29,7 +30,9 @@ impl EcPoint<Scalar> for Point {
     fn is_zero(&self) -> bool {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
     }
-    fn serialize(&self, compress: bool) -> Vec<u8> {
+}
+impl Encode for Point {
+    fn encode(&self, compress: bool) -> Vec<u8> {
         // normalize the point to ensure that z = 1
         // clone so that we don't mutate the original point
         let mut p_normal = self.clone();

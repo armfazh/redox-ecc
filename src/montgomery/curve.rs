@@ -11,7 +11,7 @@ use std::str::FromStr;
 use std::io::{Error,ErrorKind};
 
 use crate::do_if_eq;
-use crate::ellipticcurve::EllipticCurve;
+use crate::ellipticcurve::{EllipticCurve, Decode};
 use crate::field::{Field, FromFactory, Sgn0, Sqrt};
 use crate::primefield::{Fp, FpElt};
 use crate::montgomery::point::{Point, ProyCoordinates};
@@ -76,7 +76,11 @@ impl EllipticCurve for Curve {
             z: self.f.one(),
         })
     }
-    fn deserialize(&self, buf: &[u8]) -> Result<Self::Point,std::io::Error> {
+}
+
+impl Decode for Curve {
+    type Deser = Point;
+    fn decode(&self, buf: &[u8]) -> Result<Self::Deser,std::io::Error> {
         let p = self.f.get_modulus();
         let max_bytes = (p.bits()+7)/8;
         if buf.len() == 0 {
@@ -188,15 +192,18 @@ const ERR_ECC_NEW: &str = "not valid point";
 #[cfg(test)]
 mod tests {
     use crate::instances::{CURVE25519,CURVE448,GetCurve};
-    use crate::ellipticcurve::{EllipticCurve,EcPoint};
+    use crate::ellipticcurve::{EllipticCurve, Encode, Decode};
+    use crate::field::Field;
 
     #[test]
     fn point_serialization() {
         for &id in [CURVE25519,CURVE448].iter() {
             let ec = id.get();
+            let modulus = ec.get_field().get_modulus();
             let gen = ec.get_generator();
-            let ser = gen.serialize(false);
-            let deser = ec.deserialize(&ser).unwrap();
+            let ser = gen.encode(false);
+            assert_eq!(ser.len(), 2*((modulus.bits()+7)/8)+1);
+            let deser = ec.decode(&ser).unwrap();
             assert!(ec.is_on_curve(&deser), "decompressed point validity check for {}", id);
             assert!(
                 gen == deser,
@@ -209,9 +216,11 @@ mod tests {
     fn point_serialization_compressed() {
         for &id in [CURVE25519,CURVE448].iter() {
             let ec = id.get();
+            let modulus = ec.get_field().get_modulus();
             let gen = ec.get_generator();
-            let ser = gen.serialize(true);
-            let deser = ec.deserialize(&ser).unwrap();
+            let ser = gen.encode(true);
+            assert_eq!(ser.len(), ((modulus.bits()+7)/8)+1);
+            let deser = ec.decode(&ser).unwrap();
             assert!(ec.is_on_curve(&deser), "compressed point validity check for {}", id);
             assert!(
                 gen == deser,
