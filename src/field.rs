@@ -65,4 +65,5 @@ pub trait Field {
     fn elt(&self, _: BigInt) -> Self::Elt;
     fn zero(&self) -> Self::Elt;
     fn one(&self) -> Self::Elt;
+    fn get_modulus(&self) -> BigInt;
 }

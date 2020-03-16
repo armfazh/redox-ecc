@@ -50,9 +50,6 @@ impl Fp {
         f.0.sqrt_precmp.replace(SqrtPrecmp::new(&f));
         f
     }
-    pub fn get_modulus(&self) -> BigInt {
-        self.0.p.clone()
-    }
 }
 
 impl Field for Fp {
@@ -67,6 +64,9 @@ impl Field for Fp {
     }
     fn one(&self) -> Self::Elt {
         self.elt(BigInt::one())
+    }
+    fn get_modulus(&self) -> BigInt {
+        self.0.p.clone()
     }
 }
 
