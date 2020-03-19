@@ -104,8 +104,34 @@ impl_into_factory!(Fp, <u8 u16 u32 u64 i8 i16 i32 i64>);
 
 impl<'a> FromFactory<&'a str> for Fp {
     fn from(&self, s: &'a str) -> <Self as Field>::Elt {
-        use std::str::FromStr;
-        self.elt(BigInt::from_str(s).unwrap())
+        let mut sl = &s[0..];
+        if sl.len() == 0 {
+            return self.zero();
+        }
+        let mut neg = 1;
+        if &sl[0..1] == "-" {
+            sl = &sl[1..];
+            neg = -1;
+        }
+        let mut radix = 10;
+        if sl.len() > 1 {
+            radix = match &sl[0..2] {
+                "0o" => {
+                    sl = &sl[2..];
+                    8
+                }
+                "0x" => {
+                    sl = &sl[2..];
+                    16
+                }
+                "0b" => {
+                    sl = &sl[2..];
+                    2
+                }
+                _ => 10,
+            };
+        }
+        self.elt(neg * BigInt::parse_bytes(sl.as_bytes(), radix).unwrap())
     }
 }
 
@@ -119,9 +145,9 @@ pub struct FpElt {
 impl Serialize for FpElt {
     /// serializes the field element into big-endian bytes
     fn to_bytes_be(&self) -> Vec<u8> {
-        let field_len = (self.f.p.bits()+7)/8;
+        let field_len = (self.f.p.bits() + 7) / 8;
         let mut bytes = self.n.to_biguint().unwrap().to_bytes_be();
-        let mut out = vec![0; field_len-bytes.len()];
+        let mut out = vec![0; field_len - bytes.len()];
         if out.len() > 0 {
             out.append(&mut bytes);
         } else {
