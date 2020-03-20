@@ -8,11 +8,11 @@ use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
 
-use std::cell::RefCell;
+use atomic_refcell::AtomicRefCell;
 use std::cmp::Ordering;
 use std::ops;
 use std::ops::{BitXor, Div};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::do_if_eq;
 use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};
@@ -20,7 +20,7 @@ use crate::ops::Serialize;
 
 struct Params {
     p: BigInt,
-    sqrt_precmp: RefCell<SqrtPrecmp>,
+    sqrt_precmp: AtomicRefCell<SqrtPrecmp>,
 }
 
 impl PartialEq for Params {
@@ -31,7 +31,7 @@ impl PartialEq for Params {
 
 /// Fp implements a base field of prime characteristic.
 #[derive(Clone, PartialEq)]
-pub struct Fp(Rc<Params>);
+pub struct Fp(Arc<Params>);
 
 impl Fp {
     /// Use `new` to generate a prime field instance.
@@ -44,11 +44,14 @@ impl Fp {
     pub fn new(modulus: BigUint) -> Self {
         // TODO: verify whether p is prime.
         let p = modulus.to_bigint().unwrap();
-        let f = Fp(Rc::new(Params {
-            p,
-            sqrt_precmp: RefCell::new(SqrtPrecmp::Empty),
+        let init = Fp(Arc::new(Params {
+            p: p.clone(),
+            sqrt_precmp: AtomicRefCell::new(SqrtPrecmp::Empty),
         }));
-        f.0.sqrt_precmp.replace(SqrtPrecmp::new(&f));
+        let f = Fp(Arc::new(Params {
+            p,
+            sqrt_precmp: AtomicRefCell::new(SqrtPrecmp::new(&init)),
+        }));
         f
     }
 }
@@ -110,7 +113,7 @@ impl<'a> FromFactory<&'a str> for Fp {
 #[derive(Clone, std::cmp::PartialEq)]
 pub struct FpElt {
     n: BigInt,
-    f: Rc<Params>,
+    f: Arc<Params>,
 }
 
 impl Serialize for FpElt {

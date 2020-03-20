@@ -57,7 +57,7 @@ impl Scalar {
         Scalar { k, r }
     }
     #[inline]
-    pub fn inv_mod(&self) -> Scalar {
+    fn inv_mod(&self) -> Scalar {
         let exp = &self.r - 2u32;
         self.red(self.k.modpow(&exp, &self.r))
     }

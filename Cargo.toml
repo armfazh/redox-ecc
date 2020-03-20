@@ -22,7 +22,8 @@ impl_ops = "0.1.1"
 num-bigint = "0.2.6"
 num-integer = "0.1.42"
 num-traits = "0.2.11"
-doc-comment = "0.3.1"
+doc-comment = "0.3.3"
+atomic_refcell = "0.1.6"
 
 [dev-dependencies]
 criterion = "0.3"
