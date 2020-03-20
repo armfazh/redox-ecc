@@ -65,3 +65,16 @@ make_trait!(binary, Mul, MulRef);
 make_trait!(binary, Div, DivRef);
 make_trait!(unary, Neg, NegRef);
 make_trait!(action, Mul, ScMulRef);
+
+/// The Serialize trait performs type serialization into bytes
+pub trait Serialize {
+    fn to_bytes_be(&self) -> Vec<u8>;
+    fn to_bytes_le(&self) -> Vec<u8>;
+}
+
+/// The Deserialize trait recovers native types from arrays of bytes
+pub trait Deserialize {
+    type Deser;
+    fn from_bytes_be(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
+    fn from_bytes_le(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
+}

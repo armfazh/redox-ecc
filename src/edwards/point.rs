@@ -7,10 +7,11 @@ use std::ops;
 use crate::do_if_eq;
 use crate::edwards::curve::Curve;
 use crate::edwards::scalar::Scalar;
-use crate::ellipticcurve::{EcPoint, EllipticCurve};
+use crate::ellipticcurve::{EcPoint, EllipticCurve, Encode};
 use crate::ops::ScMulRef;
 use crate::primefield::FpElt;
 use crate::field::Sgn0;
+use crate::ops::Serialize;
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
@@ -30,8 +31,10 @@ impl EcPoint<Scalar> for Point {
     fn is_zero(&self) -> bool {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.t.is_zero() && !self.c.z.is_zero()
     }
+}
+impl Encode for Point {
     // based on https://tools.ietf.org/html/rfc8032#section-5.2.2
-    fn serialize(&self, _: bool) -> Vec<u8> {
+    fn encode(&self, _: bool) -> Vec<u8> {
         let mut p_normal = self.clone();
         p_normal.normalize();
         let coords = p_normal.c;
