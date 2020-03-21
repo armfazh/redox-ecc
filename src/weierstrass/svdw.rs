@@ -1,9 +1,10 @@
 use num_traits::identities::Zero;
 
 use crate::ellipticcurve::{EllipticCurve, MapToCurve};
-use crate::field::{CMov, Field, FromFactory, Sgn0, Sgn0Endianness, Sqrt};
+use crate::field::{CMov, Field, Sgn0, Sgn0Endianness, Sqrt};
+use crate::ops::FromFactory;
 use crate::primefield::FpElt;
-use crate::weierstrass::{Curve, ProyCoordinates};
+use crate::weierstrass::Curve;
 
 pub struct SVDW {
     e: Curve,
@@ -20,7 +21,7 @@ impl SVDW {
         if !SVDW::verify(&e, &z) {
             panic!("wrong input parameters")
         } else {
-            let f = &e.f;
+            let f = e.get_field();
             let (f2, f3, f4) = (f.from(2u32), f.from(3u32), f.from(4u32));
             let gz = -SVDW::gx(&e, &z);
             let c1 = -&gz;
@@ -46,7 +47,7 @@ impl SVDW {
         x * &((x ^ 2u32) + &e.a) + &e.b
     }
     fn verify(e: &Curve, z: &FpElt) -> bool {
-        let f = &e.f;
+        let f = e.get_field();
         let (f2, f3, f4) = (f.from(2u32), f.from(3u32), f.from(4u32));
         let gz = SVDW::gx(e, z);
         let gz2 = SVDW::gx(e, &((-z) * (1u32 / &f2)));
@@ -67,7 +68,7 @@ impl MapToCurve for SVDW {
         &self,
         u: <<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point {
-        let f = &self.e.f;
+        let f = self.e.get_field();
         let cmov = FpElt::cmov;
         let sgn0 = Sgn0::new(self.sgn0);
         let mut t1 = &u ^ 2u32; //          1.   t1 = u^2
@@ -105,6 +106,6 @@ impl MapToCurve for SVDW {
         let mut y = gx.sqrt(); //           33.   y = sqrt(gx)
         let e3 = sgn0(&u) == sgn0(&y); //   34.  e3 = sgn0(u) == sgn0(y)
         y = cmov(&(-&y), &y, e3); //        35.   y = CMOV(-y, y, e3)
-        self.e.new_point(ProyCoordinates { x, y, z: f.one() })
+        self.e.new_point(x, y)
     }
 }

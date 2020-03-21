@@ -7,14 +7,7 @@ use num_traits::identities::{One, Zero};
 use std::fmt::Display;
 use std::ops::BitXor;
 
-use crate::ops::{AddRef, DivRef, MulRef, SubRef, Serialize};
-
-pub trait FromFactory<T: Sized>: Field {
-    fn from(&self, _: T) -> <Self as Field>::Elt;
-}
-pub trait IntoFactory<T: Field>: Sized {
-    fn lift(&self, _: T) -> <T as Field>::Elt;
-}
+use crate::ops::{AddRef, DivRef, FromFactory, MulRef, Serialize, SubRef};
 
 /// Sqrt trait adds square-root calculation and quadratic-residue testing.
 pub trait Sqrt {
@@ -54,13 +47,44 @@ pub trait CMov: Clone {
 }
 
 pub trait FieldElement:
-    Display + PartialEq + Zero + One + AddRef + SubRef + MulRef + DivRef + BitXor<u32>
-    + Serialize
+    Display + Eq + Zero + One + AddRef + SubRef + MulRef + DivRef + BitXor<u32> + Serialize
+{
+}
+
+pub trait FromFactoryStr<Out>: for<'a> FromFactory<&'a str, Output = Out> {}
+
+impl<T, U> FromFactoryStr<U> for T where T: for<'a> FromFactory<&'a str, Output = U> {}
+
+pub trait FromFactoryPrimitive<Out>
+where
+    Self: FromFactory<u8, Output = Out>
+        + FromFactory<u16, Output = Out>
+        + FromFactory<u32, Output = Out>
+        + FromFactory<u64, Output = Out>
+        + FromFactory<i8, Output = Out>
+        + FromFactory<i16, Output = Out>
+        + FromFactory<i32, Output = Out>
+        + FromFactory<i64, Output = Out>,
+{
+}
+
+impl<T, U> FromFactoryPrimitive<U> for T where
+    T: FromFactory<u8, Output = U>
+        + FromFactory<u16, Output = U>
+        + FromFactory<u32, Output = U>
+        + FromFactory<u64, Output = U>
+        + FromFactory<i8, Output = U>
+        + FromFactory<i16, Output = U>
+        + FromFactory<i32, Output = U>
+        + FromFactory<i64, Output = U>
 {
 }
 
 /// Field is a fabric to instante a finite field.
-pub trait Field {
+pub trait Field
+where
+    Self: FromFactoryPrimitive<<Self as Field>::Elt> + FromFactoryStr<<Self as Field>::Elt>,
+{
     /// `Elt` determines the type of field elements.
     type Elt: FieldElement;
     fn elt(&self, _: BigInt) -> Self::Elt;

@@ -78,3 +78,21 @@ pub trait Deserialize {
     fn from_bytes_be(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
     fn from_bytes_le(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
 }
+
+pub trait IntoFactory<T, Out>: Sized {
+    fn lift(self, _: &T) -> Out;
+}
+
+impl<T, U, O> IntoFactory<U, O> for T
+where
+    U: FromFactory<T, Output = O>,
+{
+    fn lift(self, f: &U) -> O {
+        FromFactory::from(f, self)
+    }
+}
+
+pub trait FromFactory<T: Sized> {
+    type Output;
+    fn from(&self, _: T) -> Self::Output;
+}

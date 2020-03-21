@@ -1,8 +1,9 @@
 use num_traits::identities::Zero;
 
 use crate::ellipticcurve::{EllipticCurve, MapToCurve};
-use crate::field::{CMov, Field, FromFactory, Sgn0, Sgn0Endianness, Sqrt};
-use crate::montgomery::{Curve, ProyCoordinates};
+use crate::field::{CMov, Field, Sgn0, Sgn0Endianness, Sqrt};
+use crate::montgomery::Curve;
+use crate::ops::FromFactory;
 use crate::primefield::FpElt;
 
 pub struct Ell2 {
@@ -37,7 +38,7 @@ impl MapToCurve for Ell2 {
         &self,
         u: <<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point {
-        let f = &self.e.f;
+        let f = self.e.get_field();
         let cmov = FpElt::cmov;
         let sgn0 = Sgn0::new(self.sgn0);
         let mut t1 = &u ^ 2u32; //         1.   t1 = u^2
@@ -61,6 +62,6 @@ impl MapToCurve for Ell2 {
         y = cmov(&(-&y), &y, e3); //       19.   y = CMOV(-y, y, e3)
         x = x * &self.e.b;
         y = y * &self.e.b;
-        self.e.new_point(ProyCoordinates { x, y, z: f.one() })
+        self.e.new_point(x, y)
     }
 }

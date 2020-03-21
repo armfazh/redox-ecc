@@ -2,11 +2,12 @@ use crate::edwards;
 use crate::edwards::Curve as EdCurve;
 use crate::edwards::Point as TePoint;
 use crate::ellipticcurve::{EcPoint, EllipticCurve, RationalMap};
-use crate::field::{Field, FromFactory};
+use crate::field::Field;
 use crate::instances::{GetCurve, CURVE25519, CURVE448, EDWARDS25519, EDWARDS448};
 use crate::montgomery;
 use crate::montgomery::Curve as MtCurve;
 use crate::montgomery::Point as MtPoint;
+use crate::ops::FromFactory;
 use crate::primefield::FpElt;
 
 pub fn edwards25519_to_curve25519() -> impl RationalMap<E0 = EdCurve, E1 = MtCurve> {
@@ -43,7 +44,7 @@ impl RationalMap for Ed2Mt25519 {
             let xx = x * &t0;
             let yy = &self.invsqr_d * z * t0;
             let zz = x * (z - y);
-            self.e1.new_point(montgomery::ProyCoordinates {
+            self.e1.new_proy_point(montgomery::ProyCoordinates {
                 x: xx,
                 y: yy,
                 z: zz,
@@ -55,7 +56,7 @@ impl RationalMap for Ed2Mt25519 {
             self.e0.identity()
         } else if p.is_two_torsion() {
             let ff = self.e0.get_field();
-            self.e0.new_point(edwards::ProyCoordinates {
+            self.e0.new_proy_point(edwards::ProyCoordinates {
                 x: ff.zero(),
                 y: -ff.one(),
                 t: ff.zero(),
@@ -69,7 +70,7 @@ impl RationalMap for Ed2Mt25519 {
             let yy = y * &sub;
             let tt = &self.invsqr_d * x * sub;
             let zz = y * add;
-            self.e0.new_point(edwards::ProyCoordinates {
+            self.e0.new_proy_point(edwards::ProyCoordinates {
                 x: xx,
                 y: yy,
                 t: tt,
@@ -113,7 +114,7 @@ impl RationalMap for Ed4isoMt448 {
             let zz = x * &x2; // zz = x^3
             let xx = x * &y2; // xx = x*y^2
             let yy = y * (f2 * z2 - y2 - x2); // yy = y*(2z^2-y^2-x^2)
-            self.e1.new_point(montgomery::ProyCoordinates {
+            self.e1.new_proy_point(montgomery::ProyCoordinates {
                 x: xx,
                 y: yy,
                 z: zz,
@@ -143,7 +144,7 @@ impl RationalMap for Ed4isoMt448 {
             let xx = &xx * &z1;
             let yy = &yy * &z0;
             let zz = z0 * z1;
-            self.e0.new_point(edwards::ProyCoordinates {
+            self.e0.new_proy_point(edwards::ProyCoordinates {
                 x: xx,
                 y: yy,
                 t: tt,

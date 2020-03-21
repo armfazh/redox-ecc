@@ -2,26 +2,28 @@
 //!
 //! The primefield module is meant to be used for bar.
 
+use atomic_refcell::AtomicRefCell;
 use impl_ops::impl_op_ex;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
 
-use atomic_refcell::AtomicRefCell;
 use std::cmp::Ordering;
 use std::ops;
 use std::ops::{BitXor, Div};
 use std::sync::Arc;
 
 use crate::do_if_eq;
-use crate::field::{CMov, Field, FieldElement, FromFactory, IntoFactory, Sgn0, Sqrt};
-use crate::ops::Serialize;
+use crate::field::{CMov, Field, FieldElement, Sgn0, Sqrt};
+use crate::ops::{FromFactory, Serialize};
 
 struct Params {
     p: BigInt,
     sqrt_precmp: AtomicRefCell<SqrtPrecmp>,
 }
+
+impl Eq for Params {}
 
 impl PartialEq for Params {
     fn eq(&self, other: &Self) -> bool {
@@ -30,7 +32,7 @@ impl PartialEq for Params {
 }
 
 /// Fp implements a base field of prime characteristic.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Fp(Arc<Params>);
 
 impl Fp {
@@ -78,7 +80,8 @@ macro_rules! impl_from_factory {
     ($target:ident, <$($other:ty)+> ) => {
      $(
          impl FromFactory<$other> for $target{
-            fn from(&self, n: $other) -> <Self as Field>::Elt {
+            type Output = <Fp as Field>::Elt;
+            fn from(&self, n: $other) -> Self::Output{
                 self.elt(BigInt::from(n))
             }
         }
@@ -88,22 +91,9 @@ macro_rules! impl_from_factory {
 
 impl_from_factory!(Fp, <u8 u16 u32 u64 i8 i16 i32 i64>);
 
-macro_rules! impl_into_factory {
-    ($target:ident, <$($other:ty)+> ) => {
-     $(
-         impl IntoFactory<$target> for $other{
-            fn lift(&self, fab: $target) ->  <$target as Field>::Elt {
-                fab.elt(BigInt::from(*self))
-            }
-        }
-    )+
-    };
-}
-
-impl_into_factory!(Fp, <u8 u16 u32 u64 i8 i16 i32 i64>);
-
-impl<'a> FromFactory<&'a str> for Fp {
-    fn from(&self, s: &'a str) -> <Self as Field>::Elt {
+impl FromFactory<&str> for Fp {
+    type Output = <Fp as Field>::Elt;
+    fn from(&self, s: &str) -> Self::Output {
         let mut sl = &s[0..];
         if sl.len() == 0 {
             return self.zero();
@@ -136,11 +126,13 @@ impl<'a> FromFactory<&'a str> for Fp {
 }
 
 /// FpElt is an element of a prime field.
-#[derive(Clone, std::cmp::PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct FpElt {
     n: BigInt,
     f: Arc<Params>,
 }
+
+impl FieldElement for FpElt {}
 
 impl Serialize for FpElt {
     /// serializes the field element into big-endian bytes
@@ -177,8 +169,6 @@ impl<'a> std::ops::Add<FpElt> for &'a FpElt {
         do_if_eq!(self.f == other.f, self.red(&self.n + &other.n), ERR_BIN_OP)
     }
 }
-
-impl FieldElement for FpElt {}
 
 impl FpElt {
     #[inline]

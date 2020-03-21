@@ -8,10 +8,10 @@ use crate::do_if_eq;
 use crate::edwards::curve::Curve;
 use crate::edwards::scalar::Scalar;
 use crate::ellipticcurve::{EcPoint, EllipticCurve, Encode};
-use crate::ops::ScMulRef;
-use crate::primefield::FpElt;
 use crate::field::Sgn0;
+use crate::ops::ScMulRef;
 use crate::ops::Serialize;
+use crate::primefield::FpElt;
 
 #[derive(Clone)]
 pub struct ProyCoordinates {
@@ -41,9 +41,9 @@ impl Encode for Point {
         let x = &coords.x;
         let y = &coords.y;
         // negative == odd
-        let x_0 = (((x.sgn0_le()>>1)&0x01)<<7) as u8;
+        let x_0 = (((x.sgn0_le() >> 1) & 0x01) << 7) as u8;
         let mut enc = y.to_bytes_le();
-        let last = enc.len()-1;
+        let last = enc.len() - 1;
         enc[last] = enc[last] | x_0;
         enc
     }
@@ -58,7 +58,7 @@ impl Point {
         self.c.z.set_one();
     }
     fn core_neg(&self) -> Point {
-        self.e.new_point(ProyCoordinates {
+        self.e.new_proy_point(ProyCoordinates {
             x: -&self.c.x,
             y: self.c.y.clone(),
             t: -&self.c.t,
@@ -81,7 +81,7 @@ impl Point {
         let y3 = &gg * &hh; // Y3 = G * H
         let t3 = ee * hh; // T3 = E * H
         let z3 = ff * gg; // Z3 = F * G
-        self.e.new_point(ProyCoordinates {
+        self.e.new_proy_point(ProyCoordinates {
             x: x3,
             y: y3,
             t: t3,
@@ -99,6 +99,8 @@ impl Point {
         q
     }
 }
+
+impl Eq for Point {}
 
 impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
