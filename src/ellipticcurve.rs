@@ -7,12 +7,12 @@ use num_bigint::{BigInt, BigUint};
 use std::fmt::Display;
 
 use crate::field::Field;
-use crate::ops::{AddRef, DivRef, MulRef, NegRef, ScMulRef, SubRef, Serialize};
+use crate::ops::{AddRef, DivRef, MulRef, NegRef, ScMulRef, Serialize, SubRef};
 /// EcScalar models the behaviour of a scalar to multiply points.
 pub trait EcScalar: Display + AddRef + SubRef + MulRef + DivRef + NegRef + Serialize {}
 
 /// EcPoint models the behaviour of a point on an elliptic curve.
-pub trait EcPoint<T>: Display + AddRef + SubRef + NegRef + ScMulRef<T> + Encode
+pub trait EcPoint<T>: Display + AddRef + SubRef + NegRef + ScMulRef<T> + Encode + Eq
 where
     T: EcScalar,
 {
@@ -37,15 +37,14 @@ pub trait EllipticCurve: Decode {
     type F: Field;
     type Scalar: EcScalar;
     type Point: EcPoint<Self::Scalar>;
-    type Coordinates;
     fn identity(&self) -> Self::Point;
-    fn new_point(&self, _: Self::Coordinates) -> Self::Point;
+    fn new_point(&self, x: <Self::F as Field>::Elt, y: <Self::F as Field>::Elt) -> Self::Point;
     fn new_scalar(&self, _: BigInt) -> Self::Scalar;
     fn get_generator(&self) -> Self::Point;
     fn is_on_curve(&self, _: &Self::Point) -> bool;
     fn get_order(&self) -> BigUint;
     fn get_cofactor(&self) -> BigInt;
-    fn get_field(&self) -> Self::F;
+    fn get_field(&self) -> &Self::F;
 }
 
 /// Rational map between two elliptic curves.
