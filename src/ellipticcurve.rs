@@ -57,6 +57,15 @@ pub trait RationalMap {
     fn pull(&self, p: <Self::E1 as EllipticCurve>::Point) -> <Self::E0 as EllipticCurve>::Point;
 }
 
+/// Isogeny is a rational map between two elliptic curves.
+pub trait Isogeny {
+    type E0: EllipticCurve;
+    type E1: EllipticCurve;
+    fn domain(&self) -> Self::E0;
+    fn codomain(&self) -> Self::E1;
+    fn push(&self, p: <Self::E0 as EllipticCurve>::Point) -> <Self::E1 as EllipticCurve>::Point;
+}
+
 /// MapToCurve is a deterministic function from an element of the field F
 /// to a point on an elliptic curve E defined over F.
 pub trait MapToCurve {
