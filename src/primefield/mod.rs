@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use crate::do_if_eq;
 use crate::field::{CMov, Field, FieldElement, Sgn0, Sqrt};
-use crate::ops::{FromFactory, Serialize};
+use crate::ops::{Deserialize, FromFactory, Serialize};
 
 struct Params {
     p: BigInt,
@@ -76,6 +76,18 @@ impl Field for Fp {
     }
     fn size_bytes(&self) -> usize {
         (self.0.p.bits() + 7) / 8
+    }
+}
+
+impl Deserialize for Fp {
+    type Deser = <Fp as Field>::Elt;
+    fn from_bytes_be(&self, bytes: &[u8]) -> Result<Self::Deser, std::io::Error> {
+        let n = BigUint::from_bytes_be(bytes);
+        Ok(self.elt(n.to_bigint().unwrap()))
+    }
+    fn from_bytes_le(&self, bytes: &[u8]) -> Result<Self::Deser, std::io::Error> {
+        let n = BigUint::from_bytes_le(bytes);
+        Ok(self.elt(n.to_bigint().unwrap()))
     }
 }
 

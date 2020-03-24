@@ -37,7 +37,7 @@ impl MapToCurve for SSWUAB0 {
     type E = Curve;
     fn map(
         &self,
-        u: <<Self::E as EllipticCurve>::F as Field>::Elt,
+        u: &<<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point {
         self.iso.push(self.sswu.map(u))
     }
