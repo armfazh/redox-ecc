@@ -91,4 +91,5 @@ where
     fn zero(&self) -> Self::Elt;
     fn one(&self) -> Self::Elt;
     fn get_modulus(&self) -> BigInt;
+    fn size_bytes(&self) -> usize;
 }

@@ -41,7 +41,7 @@ impl MapToCurve for Ell2 {
     type E = TeCurve;
     fn map(
         &self,
-        u: <<Self::E as EllipticCurve>::F as Field>::Elt,
+        u: &<<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point {
         self.ratmap.pull(self.map_to_curve.map(u))
     }

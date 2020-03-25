@@ -36,12 +36,12 @@ impl MapToCurve for Ell2 {
     type E = Curve;
     fn map(
         &self,
-        u: <<Self::E as EllipticCurve>::F as Field>::Elt,
+        u: &<<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point {
         let f = self.e.get_field();
         let cmov = FpElt::cmov;
         let sgn0 = Sgn0::new(self.sgn0);
-        let mut t1 = &u ^ 2u32; //         1.   t1 = u^2
+        let mut t1 = u ^ 2u32; //          1.   t1 = u^2
         t1 = &self.z * t1; //              2.   t1 = Z * t1              // Z * u^2
         let e1 = t1 == f.from(-1); //      3.   e1 = t1 == -1            // exceptional case: Z * u^2 == -1
         t1 = cmov(&t1, &f.zero(), e1); //  4.   t1 = CMOV(t1, 0, e1)     // if t1 == -1, set t1 = 0
@@ -58,7 +58,7 @@ impl MapToCurve for Ell2 {
         let mut x = cmov(&x2, &x1, e2); // 15.   x = CMOV(x2, x1, e2)    // If is_square(gx1), x = x1, else x = x2
         let y2 = cmov(&gx2, &gx1, e2); //  16.  y2 = CMOV(gx2, gx1, e2)  // If is_square(gx1), y2 = gx1, else y2 = gx2
         let mut y = y2.sqrt(); //          17.   y = sqrt(y2)
-        let e3 = sgn0(&u) == sgn0(&y); //  18.  e3 = sgn0(u) == sgn0(y)  // Fix sign of y
+        let e3 = sgn0(u) == sgn0(&y); //   18.  e3 = sgn0(u) == sgn0(y)  // Fix sign of y
         y = cmov(&(-&y), &y, e3); //       19.   y = CMOV(-y, y, e3)
         x = x * &self.e.b;
         y = y * &self.e.b;

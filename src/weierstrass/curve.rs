@@ -2,9 +2,7 @@
 //!
 //! The curve module is meant to be used for bar.
 
-extern crate num_bigint;
 use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
-
 use num_traits::identities::Zero;
 
 use std::io::{Error, ErrorKind};
@@ -75,8 +73,8 @@ impl EllipticCurve for Curve {
     fn get_order(&self) -> BigUint {
         self.r.clone()
     }
-    fn get_field(&self) -> &Self::F {
-        &self.f
+    fn get_field(&self) -> Self::F {
+        self.f.clone()
     }
     fn get_cofactor(&self) -> BigInt {
         self.h.to_bigint().unwrap()
@@ -93,14 +91,15 @@ impl EllipticCurve for Curve {
 impl Decode for Curve {
     type Deser = Point;
     fn decode(&self, buf: &[u8]) -> Result<Self::Deser, Error> {
-        let p = self.f.get_modulus();
-        let max_bytes = (p.bits() + 7) / 8;
-        if buf.len() == 0 {
-            return Err(Error::new(ErrorKind::Other, "Input buffer is empty."));
+        let size = self.f.size_bytes();
+        let blen = buf.len();
+        if !(blen == 1 || blen == (size + 1) || blen == (2 * size + 1)) {
+            return Err(Error::new(ErrorKind::Other, "Wrong input buffer size."));
         }
         let tag = buf[0];
         // check x coordinate is in the valid range, Sign::Plus => > 0
-        let x_val = BigInt::from_bytes_be(Sign::Plus, &buf[1..max_bytes + 1]);
+        let x_val = BigInt::from_bytes_be(Sign::Plus, &buf[1..size + 1]);
+        let p = self.f.get_modulus();
         if x_val >= p {
             return Err(Error::new(ErrorKind::Other, "Invalid x coordinate"));
         }
@@ -116,14 +115,14 @@ impl Decode for Curve {
                 Ok(self.identity())
             }
             0x04 => {
-                if buf.len() != 2 * max_bytes + 1 {
+                if buf.len() != 2 * size + 1 {
                     return Err(Error::new(
                         ErrorKind::Other,
                         "Invalid bytes for deserialization",
                     ));
                 }
                 let x = self.f.elt(x_val);
-                let y_val = BigInt::from_bytes_be(Sign::Plus, &buf[max_bytes + 1..]);
+                let y_val = BigInt::from_bytes_be(Sign::Plus, &buf[size + 1..]);
                 if y_val >= p {
                     return Err(Error::new(ErrorKind::Other, "Invalid y coordinate"));
                 }
@@ -131,7 +130,7 @@ impl Decode for Curve {
                 Ok(self.new_point(x, y))
             }
             0x02 | 0x03 => {
-                if buf.len() != max_bytes + 1 {
+                if buf.len() != size + 1 {
                     return Err(Error::new(
                         ErrorKind::Other,
                         "Invalid bytes for deserialization",
@@ -207,10 +206,10 @@ mod tests {
     fn point_serialization() {
         for &id in [P256, P384, P521].iter() {
             let ec = id.get();
-            let modulus = ec.get_field().get_modulus();
+            let len_p = ec.get_field().size_bytes();
             let gen = ec.get_generator();
             let ser = gen.encode(false);
-            assert_eq!(ser.len(), 2 * ((modulus.bits() + 7) / 8) + 1);
+            assert_eq!(ser.len(), 2 * len_p + 1);
             let deser = ec.decode(&ser).unwrap();
             assert!(
                 ec.is_on_curve(&deser),
@@ -225,10 +224,10 @@ mod tests {
     fn point_serialization_compressed() {
         for &id in [P256, P384, P521].iter() {
             let ec = id.get();
-            let modulus = ec.get_field().get_modulus();
+            let len_p = ec.get_field().size_bytes();
             let gen = ec.get_generator();
             let ser = gen.encode(true);
-            assert_eq!(ser.len(), ((modulus.bits() + 7) / 8) + 1);
+            assert_eq!(ser.len(), len_p + 1);
             let deser = ec.decode(&ser).unwrap();
             assert!(
                 ec.is_on_curve(&deser),

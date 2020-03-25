@@ -74,6 +74,9 @@ impl Field for Fp {
     fn get_modulus(&self) -> BigInt {
         self.0.p.clone()
     }
+    fn size_bytes(&self) -> usize {
+        (self.0.p.bits() + 7) / 8
+    }
 }
 
 macro_rules! impl_from_factory {
