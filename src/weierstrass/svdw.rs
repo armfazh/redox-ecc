@@ -66,18 +66,18 @@ impl MapToCurve for SVDW {
     type E = Curve;
     fn map(
         &self,
-        u: <<Self::E as EllipticCurve>::F as Field>::Elt,
+        u: &<<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point {
         let f = self.e.get_field();
         let cmov = FpElt::cmov;
         let sgn0 = Sgn0::new(self.sgn0);
-        let mut t1 = &u ^ 2u32; //          1.   t1 = u^2
+        let mut t1 = u ^ 2u32; //           1.   t1 = u^2
         t1 = t1 * &self.c1; //              2.   t1 = t1 * c1
         let t2 = f.one() + &t1; //          3.   t2 = 1 + t1
         t1 = f.one() - &t1; //              4.   t1 = 1 - t1
         let mut t3 = &t1 * &t2; //          5.   t3 = t1 * t2
         t3 = 1u32 / &t3; //                 6.   t3 = inv0(t3)
-        let mut t4 = &u * &t1; //           7.   t4 = u * t1
+        let mut t4 = u * &t1; //            7.   t4 = u * t1
         t4 = t4 * &t3; //                   8.   t4 = t4 * t3
         t4 = t4 * &self.c3; //              9.   t4 = t4 * c3
         let x1 = &self.c2 - &t4; //         10.  x1 = c2 - t4
@@ -104,7 +104,7 @@ impl MapToCurve for SVDW {
         gx = gx * &x; //                    31.  gx = gx * x
         gx = gx + &self.e.b; //             32.  gx = gx + B
         let mut y = gx.sqrt(); //           33.   y = sqrt(gx)
-        let e3 = sgn0(&u) == sgn0(&y); //   34.  e3 = sgn0(u) == sgn0(y)
+        let e3 = sgn0(u) == sgn0(&y); //    34.  e3 = sgn0(u) == sgn0(y)
         y = cmov(&(-&y), &y, e3); //        35.   y = CMOV(-y, y, e3)
         self.e.new_point(x, y)
     }

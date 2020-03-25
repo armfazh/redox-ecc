@@ -41,12 +41,12 @@ impl MapToCurve for SSWU {
     type E = Curve;
     fn map(
         &self,
-        u: <<Self::E as EllipticCurve>::F as Field>::Elt,
+        u: &<<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point {
         let f = self.e.get_field();
         let cmov = FpElt::cmov;
         let sgn0 = Sgn0::new(self.sgn0);
-        let mut t1 = &u ^ 2u32; //        0.   t1 = u^2
+        let mut t1 = u ^ 2u32; //         0.   t1 = u^2
         t1 = &self.z * &t1; //            1.   t1 = Z * u^2
         let mut t2 = &t1 ^ 2u32; //       2.   t2 = t1^2
         let mut x1 = &t1 + &t2; //        3.   x1 = t1 + t2
@@ -66,7 +66,7 @@ impl MapToCurve for SSWU {
         let x = cmov(&x2, &x1, e2); //    17.   x = CMOV(x2, x1, e2)
         let y2 = cmov(&gx2, &gx1, e2); // 18.  y2 = CMOV(gx2, gx1, e2)
         let mut y = y2.sqrt(); //         19.   y = sqrt(y2)
-        let e3 = sgn0(&u) == sgn0(&y); // 20.  e3 = sgn0(u) == sgn0(y)
+        let e3 = sgn0(u) == sgn0(&y); //  20.  e3 = sgn0(u) == sgn0(y)
         y = cmov(&(-&y), &y, e3); //      21.   y = CMOV(-y, y, e3)
         self.e.new_point(x, y)
     }

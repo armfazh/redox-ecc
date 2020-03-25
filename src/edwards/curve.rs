@@ -21,7 +21,7 @@ use crate::primefield::{Fp, FpElt};
 ///
 #[derive(Clone, PartialEq)]
 pub struct Curve {
-    f: Fp,
+    pub(super) f: Fp,
     pub(super) a: FpElt,
     pub(super) d: FpElt,
     pub(super) r: BigUint,
@@ -89,8 +89,8 @@ impl EllipticCurve for Curve {
     fn get_cofactor(&self) -> BigInt {
         self.h.to_bigint().unwrap()
     }
-    fn get_field(&self) -> &Self::F {
-        &self.f
+    fn get_field(&self) -> Self::F {
+        self.f.clone()
     }
     fn get_generator(&self) -> Self::Point {
         self.new_proy_point(ProyCoordinates {
@@ -106,17 +106,18 @@ impl Decode for Curve {
     type Deser = Point;
     // based on https://tools.ietf.org/html/rfc8032#section-5.2.3
     fn decode(&self, buf: &[u8]) -> Result<Self::Deser, Error> {
+        let p = self.get_field().get_modulus();
+        let size = (p.bits() + 1 + 7) / 8;
         // step 1
-        if buf.len() == 0 {
-            return Err(Error::new(ErrorKind::Other, "Input buffer is empty."));
+        if buf.len() != size {
+            return Err(Error::new(ErrorKind::Other, "Wrong input buffer size."));
         }
-        let last_byte = buf.len() - 1;
+        let last_byte = size - 1;
         let x_0 = (buf[last_byte] >> 7) & 0x01;
         let mut y_bytes = buf.to_vec();
         y_bytes[last_byte] = y_bytes[last_byte] & 127; // clear msb
         let y_zz = BigInt::from_bytes_le(Sign::Plus, &y_bytes);
-        let p = self.f.get_modulus();
-        if y_zz > p {
+        if y_zz >= p {
             return Err(Error::new(ErrorKind::Other, "Invalid y value chosen"));
         }
         let y = self.f.elt(y_zz);
@@ -198,7 +199,7 @@ mod tests {
             let modulus = ec.get_field().get_modulus();
             let gen = ec.get_generator();
             let ser = gen.encode(false); // compression does not exist
-            assert_eq!(ser.len(), (modulus.bits() + 7) / 8);
+            assert_eq!(ser.len(), (modulus.bits() + 1 + 7) / 8);
             let deser = ec.decode(&ser).unwrap();
             assert!(
                 ec.is_on_curve(&deser),

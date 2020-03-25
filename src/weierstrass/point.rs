@@ -27,7 +27,7 @@ pub struct ProyCoordinates {
 #[derive(Clone)]
 pub struct Point {
     pub(super) e: Curve,
-    pub(super) c: ProyCoordinates,
+    pub(crate) c: ProyCoordinates,
 }
 
 impl ScMulRef<Scalar> for Point {}

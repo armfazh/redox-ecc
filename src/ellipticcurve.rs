@@ -44,7 +44,7 @@ pub trait EllipticCurve: Decode {
     fn is_on_curve(&self, _: &Self::Point) -> bool;
     fn get_order(&self) -> BigUint;
     fn get_cofactor(&self) -> BigInt;
-    fn get_field(&self) -> &Self::F;
+    fn get_field(&self) -> Self::F;
 }
 
 /// Rational map between two elliptic curves.
@@ -63,6 +63,6 @@ pub trait MapToCurve {
     type E: EllipticCurve;
     fn map(
         &self,
-        _: <<Self::E as EllipticCurve>::F as Field>::Elt,
+        _: &<<Self::E as EllipticCurve>::F as Field>::Elt,
     ) -> <Self::E as EllipticCurve>::Point;
 }

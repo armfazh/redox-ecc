@@ -8,7 +8,7 @@ use crate::do_if_eq;
 use crate::edwards::curve::Curve;
 use crate::edwards::scalar::Scalar;
 use crate::ellipticcurve::{EcPoint, EllipticCurve, Encode};
-use crate::field::Sgn0;
+use crate::field::{Field, Sgn0};
 use crate::ops::ScMulRef;
 use crate::ops::Serialize;
 use crate::primefield::FpElt;
@@ -43,6 +43,9 @@ impl Encode for Point {
         // negative == odd
         let x_0 = (((x.sgn0_le() >> 1) & 0x01) << 7) as u8;
         let mut enc = y.to_bytes_le();
+        let p = self.e.f.get_modulus();
+        let size = (p.bits() + 1 + 7) / 8;
+        enc.resize(size, 0u8);
         let last = enc.len() - 1;
         enc[last] = enc[last] | x_0;
         enc
