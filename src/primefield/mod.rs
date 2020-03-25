@@ -102,7 +102,7 @@ impl FromFactory<&str> for Fp {
             return self.zero();
         }
         let mut neg = 1;
-        if &sl[0..1] == "-" {
+        if sl.starts_with("-") {
             sl = &sl[1..];
             neg = -1;
         }
