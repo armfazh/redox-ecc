@@ -18,14 +18,14 @@ impl SSWUAB0 {
         sgn0: Sgn0Endianness,
         iso: Box<dyn Isogeny<E0 = Curve, E1 = Curve>>,
     ) -> SSWUAB0 {
-        if !SSWUAB0::verify(&e, &iso) {
+        if !SSWUAB0::verify(&e, iso.as_ref()) {
             panic!("wrong input parameters")
         } else {
             let sswu = Box::new(SSWU::new(iso.domain(), z, sgn0));
             SSWUAB0 { iso, sswu }
         }
     }
-    fn verify(e: &Curve, iso: &Box<dyn Isogeny<E0 = Curve, E1 = Curve>>) -> bool {
+    fn verify(e: &Curve, iso: &dyn Isogeny<E0 = Curve, E1 = Curve>) -> bool {
         let cond0 = *e == iso.codomain();
         let cond1 = e.a.is_zero(); // A == 0
         let cond2 = e.b.is_zero(); // B == 0

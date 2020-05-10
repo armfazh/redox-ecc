@@ -106,8 +106,8 @@ impl Decode for Curve {
     type Deser = Point;
     // based on https://tools.ietf.org/html/rfc8032#section-5.2.3
     fn decode(&self, buf: &[u8]) -> Result<Self::Deser, Error> {
-        let p = self.get_field().get_modulus();
-        let size = (p.bits() + 1 + 7) / 8;
+        let modulus = self.get_field().get_modulus();
+        let size = (modulus.bits() + 1 + 7) / 8;
         // step 1
         if buf.len() != size {
             return Err(Error::new(ErrorKind::Other, "Wrong input buffer size."));
@@ -115,9 +115,9 @@ impl Decode for Curve {
         let last_byte = size - 1;
         let x_0 = (buf[last_byte] >> 7) & 0x01;
         let mut y_bytes = buf.to_vec();
-        y_bytes[last_byte] = y_bytes[last_byte] & 127; // clear msb
+        y_bytes[last_byte] &= &127; // clear msb
         let y_zz = BigInt::from_bytes_le(Sign::Plus, &y_bytes);
-        if y_zz >= p {
+        if y_zz >= modulus {
             return Err(Error::new(ErrorKind::Other, "Invalid y value chosen"));
         }
         let y = self.f.elt(y_zz);

@@ -50,11 +50,10 @@ impl Fp {
             p: p.clone(),
             sqrt_precmp: AtomicRefCell::new(SqrtPrecmp::Empty),
         }));
-        let f = Fp(Arc::new(Params {
+        Fp(Arc::new(Params {
             p,
             sqrt_precmp: AtomicRefCell::new(SqrtPrecmp::new(&init)),
-        }));
-        f
+        }))
     }
 }
 
@@ -110,17 +109,17 @@ impl FromFactory<&str> for Fp {
     type Output = <Fp as Field>::Elt;
     fn from(&self, s: &str) -> Self::Output {
         let mut sl = &s[0..];
-        if sl.len() == 0 {
+        if sl.is_empty() {
             return self.zero();
         }
-        let mut neg = 1;
-        if sl.starts_with("-") {
+        let neg = if sl.starts_with('-') {
             sl = &sl[1..];
-            neg = -1;
-        }
-        let mut radix = 10;
-        if sl.len() > 1 {
-            radix = match &sl[0..2] {
+            -1
+        } else {
+            1
+        };
+        let radix = if sl.len() > 1 {
+            match &sl[0..2] {
                 "0o" => {
                     sl = &sl[2..];
                     8
@@ -134,8 +133,10 @@ impl FromFactory<&str> for Fp {
                     2
                 }
                 _ => 10,
-            };
-        }
+            }
+        } else {
+            10
+        };
         self.elt(neg * BigInt::parse_bytes(sl.as_bytes(), radix).unwrap())
     }
 }
@@ -155,7 +156,7 @@ impl Serialize for FpElt {
         let field_len = (self.f.p.bits() + 7) / 8;
         let mut bytes = self.n.to_biguint().unwrap().to_bytes_be();
         let mut out = vec![0; field_len - bytes.len()];
-        if out.len() > 0 {
+        if !out.is_empty() {
             out.append(&mut bytes);
         } else {
             out = bytes;

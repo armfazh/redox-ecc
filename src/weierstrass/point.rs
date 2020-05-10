@@ -52,21 +52,18 @@ impl Encode for Point {
         let y = &coords.y;
         let mut x_bytes = x.to_bytes_be();
         let mut y_bytes = y.to_bytes_be();
-        match compress {
-            true => {
-                let s = y.sgn0_le();
-                // if sign == 1: tag = 0x02; elif sign == -1: tag = 0x03
-                let tag = (((s >> 1) & 0x1) + 2) as u8;
-                let mut o = vec![tag];
-                o.append(&mut x_bytes);
-                o
-            }
-            _ => {
-                let mut o: Vec<u8> = vec![0x04];
-                o.append(&mut x_bytes);
-                o.append(&mut y_bytes);
-                o
-            }
+        if compress {
+            let s = y.sgn0_le();
+            // if sign == 1: tag = 0x02; elif sign == -1: tag = 0x03
+            let tag = (((s >> 1) & 0x1) + 2) as u8;
+            let mut o = vec![tag];
+            o.append(&mut x_bytes);
+            o
+        } else {
+            let mut o: Vec<u8> = vec![0x04];
+            o.append(&mut x_bytes);
+            o.append(&mut y_bytes);
+            o
         }
     }
 }

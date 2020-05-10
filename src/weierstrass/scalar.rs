@@ -11,8 +11,8 @@ use std::ops::{Div, Mul};
 
 use crate::do_if_eq;
 use crate::ellipticcurve::EcScalar;
-use crate::weierstrass::point::Point;
 use crate::ops::Serialize;
+use crate::weierstrass::point::Point;
 
 #[derive(Clone, PartialEq)]
 pub struct Scalar {
@@ -32,10 +32,10 @@ impl EcScalar for Scalar {}
 impl Serialize for Scalar {
     /// serializes the field element into big-endian bytes
     fn to_bytes_be(&self) -> Vec<u8> {
-        let field_len = (self.r.bits()+7)/8;
+        let field_len = (self.r.bits() + 7) / 8;
         let mut bytes = self.k.to_biguint().unwrap().to_bytes_be();
-        let mut out = vec![0; field_len-bytes.len()];
-        if out.len() > 0 {
+        let mut out = vec![0; field_len - bytes.len()];
+        if !out.is_empty() {
             out.append(&mut bytes);
         } else {
             out = bytes;

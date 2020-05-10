@@ -47,7 +47,7 @@ impl Encode for Point {
         let size = (p.bits() + 1 + 7) / 8;
         enc.resize(size, 0u8);
         let last = enc.len() - 1;
-        enc[last] = enc[last] | x_0;
+        enc[last] |= x_0;
         enc
     }
 }
