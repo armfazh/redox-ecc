@@ -58,8 +58,8 @@ impl MapToCurve for Ell2 {
         let mut x = cmov(&x2, &x1, e2); // 15.   x = CMOV(x2, x1, e2)    // If is_square(gx1), x = x1, else x = x2
         let y2 = cmov(&gx2, &gx1, e2); //  16.  y2 = CMOV(gx2, gx1, e2)  // If is_square(gx1), y2 = gx1, else y2 = gx2
         let mut y = y2.sqrt(); //          17.   y = sqrt(y2)
-        let e3 = sgn0(u) == sgn0(&y); //   18.  e3 = sgn0(u) == sgn0(y)  // Fix sign of y
-        y = cmov(&(-&y), &y, e3); //       19.   y = CMOV(-y, y, e3)
+        let e3 = sgn0(&y) == 1; //         18.  e3 = sgn0(y) == 1        // Fix sign of y
+        y = cmov(&(-&y), &y, e2 ^ e3); //  19.   y = CMOV(-y, y, e2 xor e3)
         x = x * &self.e.b;
         y = y * &self.e.b;
         self.e.new_point(x, y)
