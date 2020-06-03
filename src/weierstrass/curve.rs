@@ -143,7 +143,7 @@ impl Decode for Curve {
                 let xxx_ax = &xx_a * &x;
                 let xxx_ax_b = &xxx_ax + &self.b;
                 let y_sqrt = xxx_ax_b.sqrt();
-                let s = y_sqrt.sgn0_le();
+                let s = y_sqrt.sgn0();
                 let deser_tag = (((s >> 1) & 0x1) + 2) as u8;
                 let mut y = y_sqrt;
                 if tag != deser_tag {

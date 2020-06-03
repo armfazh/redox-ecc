@@ -9,7 +9,6 @@ use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
 
-use std::cmp::Ordering;
 use std::ops;
 use std::ops::{BitXor, Div};
 use std::sync::Arc;
@@ -317,14 +316,7 @@ impl Sqrt for FpElt {
 }
 
 impl Sgn0 for FpElt {
-    fn sgn0_be(&self) -> i32 {
-        let p_minus_1_div_2: BigInt = (&self.f.p - 1) >> 1usize;
-        match &p_minus_1_div_2.cmp(&self.n) {
-            Ordering::Equal | Ordering::Greater => 1,
-            Ordering::Less => -1,
-        }
-    }
-    fn sgn0_le(&self) -> i32 {
+    fn sgn0(&self) -> i32 {
         let res = (&self.n % 2u32).to_i32().unwrap();
         1i32 - 2i32 * res
     }

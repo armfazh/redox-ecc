@@ -48,7 +48,7 @@ impl Encode for Point {
         let mut x_bytes = x.to_bytes_be();
         let mut y_bytes = y.to_bytes_be();
         if compress {
-            let s = y.sgn0_le();
+            let s = y.sgn0();
             // if sign == 1: tag = 0x02; elif sign == -1: tag = 0x03
             let tag = (((s >> 1) & 0x1) + 2) as u8;
             let mut o = vec![tag];

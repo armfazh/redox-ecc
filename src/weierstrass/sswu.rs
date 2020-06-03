@@ -1,7 +1,7 @@
 use num_traits::identities::Zero;
 
 use crate::ellipticcurve::{EllipticCurve, MapToCurve};
-use crate::field::{CMov, Field, Sgn0, Sgn0Endianness, Sqrt};
+use crate::field::{CMov, Field, Sgn0, Sqrt};
 use crate::ops::FromFactory;
 use crate::primefield::FpElt;
 use crate::weierstrass::Curve;
@@ -12,17 +12,16 @@ pub struct SSWU {
     c1: FpElt,
     c2: FpElt,
     z: FpElt,
-    sgn0: Sgn0Endianness,
 }
 
 impl SSWU {
-    pub fn new(e: Curve, z: FpElt, sgn0: Sgn0Endianness) -> SSWU {
+    pub fn new(e: Curve, z: FpElt) -> SSWU {
         if !SSWU::verify(&e, &z) {
             panic!("wrong input parameters")
         } else {
             let c1 = -&e.b * (1u32 / &e.a);
             let c2 = -(1u32 / &z);
-            SSWU { e, c1, c2, z, sgn0 }
+            SSWU { e, c1, c2, z }
         }
     }
     fn verify(e: &Curve, z: &FpElt) -> bool {
@@ -45,7 +44,6 @@ impl MapToCurve for SSWU {
     ) -> <Self::E as EllipticCurve>::Point {
         let f = self.e.get_field();
         let cmov = FpElt::cmov;
-        let sgn0 = Sgn0::new(self.sgn0);
         let mut t1 = u ^ 2u32; //         0.   t1 = u^2
         t1 = &self.z * &t1; //            1.   t1 = Z * u^2
         let mut t2 = &t1 ^ 2u32; //       2.   t2 = t1^2
@@ -66,7 +64,7 @@ impl MapToCurve for SSWU {
         let x = cmov(&x2, &x1, e2); //    17.   x = CMOV(x2, x1, e2)
         let y2 = cmov(&gx2, &gx1, e2); // 18.  y2 = CMOV(gx2, gx1, e2)
         let mut y = y2.sqrt(); //         19.   y = sqrt(y2)
-        let e3 = sgn0(u) == sgn0(&y); //  20.  e3 = sgn0(u) == sgn0(y)
+        let e3 = u.sgn0() == y.sgn0(); // 20.  e3 = sgn0(u) == sgn0(y)
         y = cmov(&(-&y), &y, e3); //      21.   y = CMOV(-y, y, e3)
         self.e.new_point(x, y)
     }

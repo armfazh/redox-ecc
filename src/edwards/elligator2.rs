@@ -1,6 +1,6 @@
 use crate::edwards::Curve as TeCurve;
 use crate::ellipticcurve::{EllipticCurve, MapToCurve, RationalMap};
-use crate::field::{Field, Sgn0Endianness};
+use crate::field::Field;
 use crate::montgomery::Curve as MtCurve;
 use crate::montgomery::Ell2 as MtEll2;
 use crate::primefield::FpElt;
@@ -14,7 +14,6 @@ impl Ell2 {
     pub fn new(
         e: TeCurve,
         z: FpElt,
-        sgn0: Sgn0Endianness,
         ratmap: Option<Box<dyn RationalMap<E0 = TeCurve, E1 = MtCurve>>>,
     ) -> Ell2 {
         let (map_to_curve, ratmap) = match ratmap {
@@ -27,7 +26,7 @@ impl Ell2 {
                     panic!("Domain of rational map is incompatible with curve")
                 }
                 let mt_curve = r.codomain();
-                (Box::new(MtEll2::new(mt_curve, z, sgn0)), r)
+                (Box::new(MtEll2::new(mt_curve, z)), r)
             }
         };
         Ell2 {

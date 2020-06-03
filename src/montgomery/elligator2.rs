@@ -1,7 +1,7 @@
 use num_traits::identities::Zero;
 
 use crate::ellipticcurve::{EllipticCurve, MapToCurve};
-use crate::field::{CMov, Field, Sgn0, Sgn0Endianness, Sqrt};
+use crate::field::{CMov, Field, Sgn0, Sqrt};
 use crate::montgomery::Curve;
 use crate::ops::FromFactory;
 use crate::primefield::FpElt;
@@ -11,18 +11,17 @@ pub struct Ell2 {
     z: FpElt,
     ca: FpElt,
     cb: FpElt,
-    sgn0: Sgn0Endianness,
 }
 
 impl Ell2 {
-    pub fn new(e: Curve, z: FpElt, sgn0: Sgn0Endianness) -> Ell2 {
+    pub fn new(e: Curve, z: FpElt) -> Ell2 {
         if !Ell2::verify(&e) {
             panic!("wrong input parameters")
         } else {
             let inb = 1u32 / &e.b;
             let ca = &e.a / &inb;
             let cb = inb ^ 2u32;
-            Ell2 { e, z, ca, cb, sgn0 }
+            Ell2 { e, z, ca, cb }
         }
     }
     fn verify(e: &Curve) -> bool {
@@ -40,7 +39,6 @@ impl MapToCurve for Ell2 {
     ) -> <Self::E as EllipticCurve>::Point {
         let f = self.e.get_field();
         let cmov = FpElt::cmov;
-        let sgn0 = Sgn0::new(self.sgn0);
         let mut t1 = u ^ 2u32; //          1.   t1 = u^2
         t1 = &self.z * t1; //              2.   t1 = Z * t1              // Z * u^2
         let e1 = t1 == f.from(-1); //      3.   e1 = t1 == -1            // exceptional case: Z * u^2 == -1
@@ -58,7 +56,7 @@ impl MapToCurve for Ell2 {
         let mut x = cmov(&x2, &x1, e2); // 15.   x = CMOV(x2, x1, e2)    // If is_square(gx1), x = x1, else x = x2
         let y2 = cmov(&gx2, &gx1, e2); //  16.  y2 = CMOV(gx2, gx1, e2)  // If is_square(gx1), y2 = gx1, else y2 = gx2
         let mut y = y2.sqrt(); //          17.   y = sqrt(y2)
-        let e3 = sgn0(&y) == 1; //         18.  e3 = sgn0(y) == 1        // Fix sign of y
+        let e3 = y.sgn0() == 1; //         18.  e3 = sgn0(y) == 1        // Fix sign of y
         y = cmov(&(-&y), &y, e2 ^ e3); //  19.   y = CMOV(-y, y, e2 xor e3)
         x = x * &self.e.b;
         y = y * &self.e.b;

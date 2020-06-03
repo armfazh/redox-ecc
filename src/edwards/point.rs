@@ -41,7 +41,7 @@ impl Encode for Point {
         let x = &coords.x;
         let y = &coords.y;
         // negative == odd
-        let x_0 = (((x.sgn0_le() >> 1) & 0x01) << 7) as u8;
+        let x_0 = (((x.sgn0() >> 1) & 0x01) << 7) as u8;
         let mut enc = y.to_bytes_le();
         let p = self.e.f.get_modulus();
         let size = (p.bits() + 1 + 7) / 8;

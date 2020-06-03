@@ -18,22 +18,8 @@ pub trait Sqrt {
     fn sqrt(&self) -> Self;
 }
 
-#[derive(Copy, Clone)]
-pub enum Sgn0Endianness {
-    BigEndian,
-    LittleEndian,
-}
-
 pub trait Sgn0 {
-    fn sgn0_be(&self) -> i32;
-    fn sgn0_le(&self) -> i32;
-    #[inline]
-    fn new(s: Sgn0Endianness) -> fn(_: &Self) -> i32 {
-        match s {
-            Sgn0Endianness::BigEndian => Self::sgn0_be,
-            Sgn0Endianness::LittleEndian => Self::sgn0_le,
-        }
-    }
+    fn sgn0(&self) -> i32;
 }
 
 pub trait CMov: Clone {
