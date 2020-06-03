@@ -1,7 +1,7 @@
 use num_traits::identities::Zero;
 
 use crate::ellipticcurve::{EllipticCurve, Isogeny, MapToCurve};
-use crate::field::{Field, Sgn0Endianness};
+use crate::field::Field;
 use crate::primefield::FpElt;
 use crate::weierstrass::{Curve, SSWU};
 
@@ -12,16 +12,11 @@ pub struct SSWUAB0 {
 }
 
 impl SSWUAB0 {
-    pub fn new(
-        e: Curve,
-        z: FpElt,
-        sgn0: Sgn0Endianness,
-        iso: Box<dyn Isogeny<E0 = Curve, E1 = Curve>>,
-    ) -> SSWUAB0 {
+    pub fn new(e: Curve, z: FpElt, iso: Box<dyn Isogeny<E0 = Curve, E1 = Curve>>) -> SSWUAB0 {
         if !SSWUAB0::verify(&e, iso.as_ref()) {
             panic!("wrong input parameters")
         } else {
-            let sswu = Box::new(SSWU::new(iso.domain(), z, sgn0));
+            let sswu = Box::new(SSWU::new(iso.domain(), z));
             SSWUAB0 { iso, sswu }
         }
     }

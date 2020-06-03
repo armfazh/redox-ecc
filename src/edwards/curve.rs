@@ -137,7 +137,7 @@ impl Decode for Curve {
                 "Failed decoding on square root",
             ));
         }
-        let tag = ((x_sqrt.sgn0_le() >> 1) & 0x01) as u8;
+        let tag = ((x_sqrt.sgn0() >> 1) & 0x01) as u8;
         let mut x = x_sqrt;
         if tag != x_0 {
             x = -x;

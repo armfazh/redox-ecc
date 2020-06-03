@@ -38,6 +38,7 @@ mod macros;
 pub mod field;
 pub mod ops;
 pub mod primefield;
+pub mod quadraticfield;
 
 pub mod ellipticcurve;
 
