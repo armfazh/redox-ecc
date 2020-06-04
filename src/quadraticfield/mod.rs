@@ -18,7 +18,7 @@ use crate::primefield::{Fp, FpElt};
 
 struct Params {
     base: Fp,
-    sqrt_precmp: AtomicRefCell<SqrtPrecmp>,
+    sqrt_precmp: AtomicRefCell<Option<SqrtPrecmp>>,
 }
 
 impl Eq for Params {}
@@ -38,12 +38,12 @@ impl Fp2 {
     /// ```
     ///  use num_bigint::BigUint;
     ///  use redox_ecc::quadraticfield::Fp2;
-    ///  let f = Fp2::new(BigUint::from(101u32));
+    ///  let f = Fp2::new(BigUint::from(103u32));
     /// ```
     /// The `modulus` should be a prime number.
     pub fn new(modulus: BigUint) -> Self {
         let base = Fp::new(modulus);
-        let sqrt_precmp = AtomicRefCell::new(SqrtPrecmp::new(&base));
+        let sqrt_precmp = AtomicRefCell::new(None);
         Fp2(Arc::new(Params { base, sqrt_precmp }))
     }
 }
@@ -53,7 +53,7 @@ impl Field for Fp2 {
     fn elt(&self, n: BigInt) -> Self::Elt {
         let n0 = self.0.base.elt(n);
         let n1 = self.0.base.zero();
-        let f = self.0.clone();
+        let f = self.clone();
         Fp2Elt { n: vec![n0, n1], f }
     }
     fn zero(&self) -> Self::Elt {
@@ -82,7 +82,7 @@ impl Deserialize for Fp2 {
         let n1 = self.0.base.from_bytes_be(&bytes[size..2 * size]).unwrap();
         Ok(Fp2Elt {
             n: vec![n0, n1],
-            f: self.0.clone(),
+            f: self.clone(),
         })
     }
     fn from_bytes_le(&self, bytes: &[u8]) -> Result<Self::Deser, std::io::Error> {
@@ -95,7 +95,7 @@ impl Deserialize for Fp2 {
         let n1 = self.0.base.from_bytes_le(&bytes[size..2 * size]).unwrap();
         Ok(Fp2Elt {
             n: vec![n0, n1],
-            f: self.0.clone(),
+            f: self.clone(),
         })
     }
 }
@@ -123,7 +123,7 @@ impl FromFactory<&str> for Fp2 {
         let n1: FpElt = self.0.base.from(vs[1]);
         Fp2Elt {
             n: vec![n0, n1],
-            f: self.0.clone(),
+            f: self.clone(),
         }
     }
 }
@@ -132,7 +132,7 @@ impl FromFactory<&str> for Fp2 {
 #[derive(Clone, PartialEq, Eq)]
 pub struct Fp2Elt {
     n: Vec<FpElt>,
-    f: Arc<Params>,
+    f: Fp2,
 }
 
 impl FieldElement for Fp2Elt {}
@@ -156,14 +156,12 @@ impl Serialize for Fp2Elt {
     }
 }
 
-// impl<'b> EltOps<&'b Fp2Elt, Fp2Elt> for Fp2Elt {}
-// impl<'a> EltOps<Fp2Elt, Fp2Elt> for &'a Fp2Elt {}
 impl<'a, 'b> std::ops::Add<&'b Fp2Elt> for &'a Fp2Elt {
     type Output = Fp2Elt;
     fn add(self, other: &'b Fp2Elt) -> Fp2Elt {
         do_if_eq!(
             self.f == other.f,
-            self.red(&self.n[0] + &other.n[0], &self.n[1] + &other.n[1]),
+            self.elt(&self.n[0] + &other.n[0], &self.n[1] + &other.n[1]),
             ERR_BIN_OP
         )
     }
@@ -173,7 +171,7 @@ impl<'a> std::ops::Add<Fp2Elt> for &'a Fp2Elt {
     fn add(self, other: Fp2Elt) -> Fp2Elt {
         do_if_eq!(
             self.f == other.f,
-            self.red(&self.n[0] + &other.n[0], &self.n[1] + &other.n[1]),
+            self.elt(&self.n[0] + &other.n[0], &self.n[1] + &other.n[1]),
             ERR_BIN_OP
         )
     }
@@ -181,7 +179,7 @@ impl<'a> std::ops::Add<Fp2Elt> for &'a Fp2Elt {
 
 impl Fp2Elt {
     #[inline]
-    fn red(&self, n0: FpElt, n1: FpElt) -> Fp2Elt {
+    fn elt(&self, n0: FpElt, n1: FpElt) -> Fp2Elt {
         let n = vec![n0, n1];
         let f = self.f.clone();
         Fp2Elt { n, f }
@@ -191,24 +189,24 @@ impl Fp2Elt {
         let n0 = &self.n[0];
         let n1 = &self.n[1];
         let den = 1u32 / &(n0 * n0 + n1 * n1);
-        self.red(&den * n0, den * n1)
+        self.elt(&den * n0, den * n1)
     }
 }
 
 impl_op_ex!(+|a: Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
-    do_if_eq!(a.f == b.f, a.red(&a.n[0] + &b.n[0], &a.n[1] + &b.n[1]), ERR_BIN_OP)
+    do_if_eq!(a.f == b.f, a.elt(&a.n[0] + &b.n[0], &a.n[1] + &b.n[1]), ERR_BIN_OP)
 });
 impl_op_ex!(-|a: &Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
     do_if_eq!(
         a.f == b.f,
-        a.red(&a.n[0] - &b.n[0], &a.n[1] - &b.n[1]),
+        a.elt(&a.n[0] - &b.n[0], &a.n[1] - &b.n[1]),
         ERR_BIN_OP
     )
 });
 impl_op_ex!(*|a: &Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
     do_if_eq!(
         a.f == b.f,
-        a.red(
+        a.elt(
             &a.n[0] * &b.n[0] - &a.n[1] * &b.n[1],
             &a.n[0] * &b.n[1] + &a.n[1] * &b.n[0],
         ),
@@ -221,7 +219,7 @@ impl_op_ex!(/|a: &Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
         a * b.inv_mod()
     }
 });
-impl_op_ex!(-|a: &Fp2Elt| -> Fp2Elt { a.red(-&a.n[0], -&a.n[1]) });
+impl_op_ex!(-|a: &Fp2Elt| -> Fp2Elt { a.elt(-&a.n[0], -&a.n[1]) });
 impl_op_ex!(^|a: &Fp2Elt, b: u32| -> Fp2Elt {
     do_if_eq!(b == 2u32, a * a, ERR_EXP_SQR_OP)
 });
@@ -269,20 +267,25 @@ impl CMov for Fp2Elt {}
 
 #[derive(Clone, std::cmp::PartialEq)]
 enum SqrtPrecmp {
-    Empty,
     P3MOD4 { c1: BigInt, c2: BigInt },
 }
 
-impl SqrtPrecmp {
-    fn new(f: &Fp) -> SqrtPrecmp {
-        let p = f.get_modulus();
-        // let res = (p % 16u32).to_u32().unwrap();
+impl Fp2 {
+    fn get_sqrt_precmp(&self) -> SqrtPrecmp {
+        self.0
+            .sqrt_precmp
+            .borrow_mut()
+            .get_or_insert(self.calc_sqrt_precmp())
+            .clone()
+    }
+    fn calc_sqrt_precmp(&self) -> SqrtPrecmp {
+        let p = self.get_modulus();
         if 3u32 == (&p % 4u32).to_u32().unwrap() {
             let c1 = (&p - 3u32) >> 2usize;
             let c2 = (&p - 1u32) >> 1usize;
             SqrtPrecmp::P3MOD4 { c1, c2 }
         } else {
-            SqrtPrecmp::Empty
+            unimplemented!()
         }
     }
 }
@@ -292,14 +295,29 @@ impl Sqrt for Fp2Elt {
     fn is_square(&self) -> bool {
         let n0 = &self.n[0];
         let n1 = &self.n[1];
-        let den = 1u32 / &(n0 * n0 + n1 * n1);
-        den.is_one()
+        let t0 = n0 * n0 + n1 * n1;
+        let exp = (self.f.get_modulus() - 1u32) >> 1usize;
+        let t1 = &t0 ^ &exp;
+        t1 == self.f.0.base.one()
     }
     fn sqrt(&self) -> Fp2Elt {
-        let pre = &self.f.sqrt_precmp;
-        match &*pre.borrow() {
-            SqrtPrecmp::P3MOD4 { c1, c2 } => &(self ^ c1) ^ c2,
-            SqrtPrecmp::Empty => unimplemented!(),
+        let pre = self.f.get_sqrt_precmp();
+        match pre {
+            SqrtPrecmp::P3MOD4 { c1, c2 } => {
+                let a1 = self ^ &c1;
+                let a1a = &a1 * self;
+                let alpha = a1 * &a1a;
+                let x0 = a1a;
+                let t = &alpha + self.f.one();
+                if t.is_zero() {
+                    let i = self.elt(self.f.0.base.from(0), self.f.0.base.from(1));
+                    x0 * i
+                } else {
+                    let par = alpha + self.f.one();
+                    let b = &par ^ &c2;
+                    x0 * b
+                }
+            }
         }
     }
 }
@@ -307,8 +325,9 @@ impl Sqrt for Fp2Elt {
 impl Sgn0 for Fp2Elt {
     fn sgn0(&self) -> i32 {
         let s0 = self.n[0].sgn0();
+        let z0 = self.n[0].is_zero() as i32;
         let s1 = self.n[1].sgn0();
-        s0 ^ s1
+        s0 | (z0 ^ s1)
     }
 }
 

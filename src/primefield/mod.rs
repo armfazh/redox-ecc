@@ -19,7 +19,7 @@ use crate::ops::{Deserialize, FromFactory, Serialize};
 
 struct Params {
     p: BigInt,
-    sqrt_precmp: AtomicRefCell<SqrtPrecmp>,
+    sqrt_precmp: AtomicRefCell<Option<SqrtPrecmp>>,
 }
 
 impl Eq for Params {}
@@ -45,13 +45,9 @@ impl Fp {
     pub fn new(modulus: BigUint) -> Self {
         // TODO: verify whether p is prime.
         let p = modulus.to_bigint().unwrap();
-        let init = Fp(Arc::new(Params {
-            p: p.clone(),
-            sqrt_precmp: AtomicRefCell::new(SqrtPrecmp::Empty),
-        }));
         Fp(Arc::new(Params {
-            p,
-            sqrt_precmp: AtomicRefCell::new(SqrtPrecmp::new(&init)),
+            p: p.clone(),
+            sqrt_precmp: AtomicRefCell::new(None),
         }))
     }
 }
@@ -60,7 +56,7 @@ impl Field for Fp {
     type Elt = FpElt;
     fn elt(&self, n: BigInt) -> Self::Elt {
         let n = n.mod_floor(&self.0.p);
-        let f = self.0.clone();
+        let f = self.clone();
         FpElt { n, f }
     }
     fn zero(&self) -> Self::Elt {
@@ -144,7 +140,7 @@ impl FromFactory<&str> for Fp {
 #[derive(Clone, PartialEq, Eq)]
 pub struct FpElt {
     n: BigInt,
-    f: Arc<Params>,
+    f: Fp,
 }
 
 impl FieldElement for FpElt {}
@@ -152,7 +148,7 @@ impl FieldElement for FpElt {}
 impl Serialize for FpElt {
     /// serializes the field element into big-endian bytes
     fn to_bytes_be(&self) -> Vec<u8> {
-        let field_len = (self.f.p.bits() + 7) / 8;
+        let field_len = self.f.size_bytes();
         let mut bytes = self.n.to_biguint().unwrap().to_bytes_be();
         let mut out = vec![0; field_len - bytes.len()];
         if !out.is_empty() {
@@ -188,13 +184,13 @@ impl<'a> std::ops::Add<FpElt> for &'a FpElt {
 impl FpElt {
     #[inline]
     fn red(&self, n: BigInt) -> FpElt {
-        let n = n.mod_floor(&self.f.p);
+        let n = n.mod_floor(&self.f.0.p);
         let f = self.f.clone();
         FpElt { n, f }
     }
     #[inline]
     fn inv_mod(&self) -> FpElt {
-        let p_minus_2 = &self.f.p.to_biguint().unwrap() - 2u32;
+        let p_minus_2 = &self.f.0.p - 2u32;
         self ^ &p_minus_2
     }
 }
@@ -235,7 +231,7 @@ impl<'a, 'b> BitXor<&'b BigUint> for &'a FpElt {
     #[inline]
     fn bitxor(self, exp: &'b BigUint) -> Self::Output {
         let exp = exp.to_bigint().unwrap();
-        self.red(self.n.modpow(&exp, &self.f.p))
+        self.red(self.n.modpow(&exp, &self.f.0.p))
     }
 }
 
@@ -243,7 +239,7 @@ impl<'a, 'b> BitXor<&'b BigInt> for &'a FpElt {
     type Output = FpElt;
     #[inline]
     fn bitxor(self, exp: &'b BigInt) -> Self::Output {
-        let expo = &exp.mod_floor(&(&self.f.p - 1)).to_biguint().unwrap();
+        let expo = &exp.mod_floor(&(&self.f.0.p - 1)).to_biguint().unwrap();
         self ^ expo
     }
 }
@@ -252,26 +248,31 @@ impl CMov for FpElt {}
 
 #[derive(Clone, std::cmp::PartialEq)]
 enum SqrtPrecmp {
-    Empty,
     P3MOD4 { exp: BigInt },
     P5MOD8 { exp: BigInt, sqrt_minus_one: FpElt },
     P9MOD16,
     P1MOD16,
 }
-
-impl SqrtPrecmp {
-    fn new(f: &Fp) -> SqrtPrecmp {
-        let p = &f.0.p;
+impl Fp {
+    fn get_sqrt_precmp(&self) -> SqrtPrecmp {
+        self.0
+            .sqrt_precmp
+            .borrow_mut()
+            .get_or_insert(self.calc_sqrt_precmp())
+            .clone()
+    }
+    fn calc_sqrt_precmp(&self) -> SqrtPrecmp {
+        let p = &self.0.p;
         let res = (p % 16u32).to_u32().unwrap();
         if 3u32 == (res % 4u32) {
             let exp = (p + 1u32) >> 2usize;
             SqrtPrecmp::P3MOD4 { exp }
         } else if 5u32 == (res % 8u32) {
             let k = (p - 5u32) >> 3usize;
-            let t = &(f.one() + f.one()) ^ &k; // t = 2^k
+            let t = &(self.one() + self.one()) ^ &k; // t = 2^k
             let mut t0 = &t ^ 2u32; //  t^2
             t0 = &t0 + &t0; //          2t^2
-            t0 = t0 + f.one(); //       2t^2+1
+            t0 = t0 + self.one(); //       2t^2+1
             t0 = t0 * t; //             t(2t^2+1)
             let exp = k + 1;
             let sqrt_minus_one = t0;
@@ -290,19 +291,19 @@ impl SqrtPrecmp {
 impl Sqrt for FpElt {
     #[inline]
     fn is_square(&self) -> bool {
-        let p_minus_1_div_2 = (&self.f.p - 1) >> 1usize;
+        let p_minus_1_div_2 = (&self.f.0.p - 1) >> 1usize;
         let res: FpElt = self ^ &p_minus_1_div_2;
         res.is_one() || res.is_zero()
     }
     fn sqrt(&self) -> FpElt {
-        let pre = &self.f.sqrt_precmp;
-        match &*pre.borrow() {
-            SqrtPrecmp::P3MOD4 { exp } => self ^ exp,
+        let pre = self.f.get_sqrt_precmp();
+        match pre {
+            SqrtPrecmp::P3MOD4 { exp } => self ^ &exp,
             SqrtPrecmp::P5MOD8 {
                 exp,
                 sqrt_minus_one,
             } => {
-                let t0 = self ^ exp;
+                let t0 = self ^ &exp;
                 let t1 = &t0 ^ 2u32;
                 let e = *self == t1;
                 let t1 = &t0 * sqrt_minus_one;
@@ -310,7 +311,6 @@ impl Sqrt for FpElt {
             }
             SqrtPrecmp::P9MOD16 => unimplemented!(),
             SqrtPrecmp::P1MOD16 => unimplemented!(),
-            SqrtPrecmp::Empty => unimplemented!(),
         }
     }
 }
@@ -348,7 +348,7 @@ impl num_traits::identities::One for FpElt {
 
 impl std::fmt::Display for FpElt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let x = self.n.mod_floor(&self.f.p);
+        let x = self.n.mod_floor(&self.f.0.p);
         write!(f, "{}", x)
     }
 }
