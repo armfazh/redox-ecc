@@ -118,7 +118,7 @@ impl_from_factory!(Fp2, <u8 u16 u32 u64 i8 i16 i32 i64>);
 impl FromFactory<&str> for Fp2 {
     type Output = <Fp2 as Field>::Elt;
     fn from(&self, s: &str) -> Self::Output {
-        let vs: Vec<&str> = s.splitn(2, ",").collect();
+        let vs: Vec<&str> = s.splitn(2, ',').collect();
         let n0: FpElt = self.0.base.from(vs[0]);
         let n1: FpElt = self.0.base.from(vs[1]);
         Fp2Elt {
@@ -242,7 +242,7 @@ impl<'a, 'b> BitXor<&'b BigUint> for &'a Fp2Elt {
         let v = exp.to_u32_digits();
         let mut out = Fp2Elt::one();
         for vi in v.iter().rev() {
-            for j in 31..0 {
+            for j in (0..31).rev() {
                 out = &out * &out;
                 let bit = (*vi >> j) & 1;
                 if bit == 1 {

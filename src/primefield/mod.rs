@@ -44,9 +44,8 @@ impl Fp {
     /// The `modulus` should be a prime number.
     pub fn new(modulus: BigUint) -> Self {
         // TODO: verify whether p is prime.
-        let p = modulus.to_bigint().unwrap();
         Fp(Arc::new(Params {
-            p: p.clone(),
+            p: modulus.to_bigint().unwrap(),
             sqrt_precmp: AtomicRefCell::new(None),
         }))
     }
