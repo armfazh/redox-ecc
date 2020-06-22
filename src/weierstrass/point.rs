@@ -139,12 +139,61 @@ impl Point {
             z: z3,
         })
     }
+    /// core_doubling implements exception free point doubling formulas for prime order groups.
+    // Reference: "Complete addition formulas for prime order elliptic curves" by
+    // Costello-Renes-Batina. [Alg.3] (eprint.iacr.org/2015/1060).
+    fn core_doubling(&self) -> <Curve as EllipticCurve>::Point {
+        let a = &self.e.a;
+        let b3 = &self.e.b + &self.e.b + &self.e.b;
+        let x = &self.c.x;
+        let y = &self.c.y;
+        let z = &self.c.z;
+        let (mut x3, mut y3, mut z3);
+        let (mut t0, t1, mut t2, mut t3);
+        t0 = x * x; //      1. t0 =  X *  X
+        t1 = y * y; //      2. t1 =  Y *  Y
+        t2 = z * z; //      3. t2 =  Z *  Z
+        t3 = x * y; //      4. t3 =  X *  Y
+        t3 = &t3 + &t3; //  5. t3 = t3 + t3
+        z3 = x * z; //      6. Z3 =  X *  Z
+        z3 = &z3 + &z3; //  7. Z3 = Z3 + Z3
+        x3 = a * &z3; //    8. X3 =  a * Z3
+        y3 = &b3 * &t2; //  9. Y3 = b3 * t2
+        y3 = &x3 + &y3; // 10. Y3 = X3 + Y3
+        x3 = &t1 - &y3; // 11. X3 = t1 - Y3
+        y3 = &t1 + &y3; // 12. Y3 = t1 + Y3
+        y3 = &x3 * &y3; // 13. Y3 = X3 * Y3
+        x3 = &t3 * &x3; // 14. X3 = t3 * X3
+        z3 = &b3 * &z3; // 15. Z3 = b3 * Z3
+        t2 = a * &t2; //   16. t2 =  a * t2
+        t3 = &t0 - &t2; // 17. t3 = t0 - t2
+        t3 = a * &t3; //   18. t3 =  a * t3
+        t3 = &t3 + &z3; // 19. t3 = t3 + Z3
+        z3 = &t0 + &t0; // 20. Z3 = t0 + t0
+        t0 = &z3 + &t0; // 21. t0 = Z3 + t0
+        t0 = &t0 + &t2; // 22. t0 = t0 + t2
+        t0 = &t0 * &t3; // 23. t0 = t0 * t3
+        y3 = &y3 + &t0; // 24. Y3 = Y3 + t0
+        t2 = y * z; //     25. t2 =  Y *  Z
+        t2 = &t2 + &t2; // 26. t2 = t2 + t2
+        t0 = &t2 * &t3; // 27. t2 = t2 * t3
+        x3 = &x3 - &t0; // 28. X3 = X3 - t0
+        z3 = &t2 * &t1; // 29. Z3 = t2 * t1
+        z3 = &z3 + &z3; // 30. Z3 = Z3 + Z3
+        z3 = &z3 + &z3; // 31. Z3 = Z3 + Z3
+        self.e.new_proy_point(ProyCoordinates {
+            x: x3,
+            y: y3,
+            z: z3,
+        })
+    }
+
     /// core_mul implements the double&add Scalar multiplication method.
     /// This function run in non-constant time.
     fn core_mul(&self, k: &Scalar) -> <Curve as EllipticCurve>::Point {
         let mut q = self.e.identity();
         for ki in k.iter_lr() {
-            q = &q + &q;
+            q = q.core_doubling();
             if ki {
                 q = q + self;
             }
