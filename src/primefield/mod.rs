@@ -194,6 +194,32 @@ impl FpElt {
     }
 }
 
+impl FpElt {
+    // Add crate addition function that doesn't reduce the result every time.
+    // Useful when doing the point addition or doubling functions, since add, at worst, will increase bit usage by 1,
+    // thus increase variable memory size by one in average once every 8 calls, which is perfectly acceptable
+    pub(crate) fn add_nomod(&self, other: &FpElt) -> FpElt {
+        assert!(self.f == other.f);
+        FpElt{ n: &self.n + &other.n, f: self.f.clone() }
+        }
+    // Same as above, but inplace
+    pub(crate) fn add_nomod_inplace(&mut self, other: &FpElt) -> &FpElt {
+        assert!(self.f == other.f);
+        self.n += &other.n;
+        self
+    }
+    pub(crate) fn sub_nomod(&self, other: &FpElt) -> FpElt {
+        assert!(self.f == other.f);
+        FpElt{ n: &self.n - &other.n, f: self.f.clone() }
+    }
+    // Same as above, but inplace
+    pub(crate) fn sub_nomod_inplace(&mut self, other: &FpElt) -> &FpElt {
+        assert!(self.f == other.f);
+        self.n -= &other.n;
+        self
+    }
+}
+
 impl_op_ex!(+|a: FpElt, b: &FpElt| -> FpElt {
     do_if_eq!(a.f == b.f, a.red(&a.n + &b.n), ERR_BIN_OP)
 });
@@ -252,6 +278,7 @@ enum SqrtPrecmp {
     P9MOD16,
     P1MOD16,
 }
+
 impl Fp {
     fn get_sqrt_precmp(&self) -> SqrtPrecmp {
         self.0

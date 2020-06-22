@@ -76,10 +76,10 @@ impl Point {
         let bb = y1 * y2; // B = Y1 * Y2
         let cc = d_ec * t1 * t2; // C = d*T1 * T2
         let dd = z1 * z2; // D = Z1 * Z2
-        let ee = (x1 + y1) * (x2 + y2) - &aa - &bb; // E = (X1 + Y1 ) * (X2 + Y2 ) - A - B
-        let ff = &dd - &cc; // F = D - C
-        let gg = dd + cc; // G = D + C
-        let hh = bb - aa * a_ec; // H = B - a*A
+        let ee = (x1.add_nomod(y1) * x2.add_nomod(y2)).sub_nomod(&aa).sub_nomod(&bb); // E = (X1 + Y1 ) * (X2 + Y2 ) - A - B
+        let ff = dd.sub_nomod(&cc); // F = D - C
+        let gg = dd.add_nomod(&cc); // G = D + C
+        let hh = bb.sub_nomod(&(&aa * a_ec)); // H = B - a*A
         let x3 = &ee * &ff; // X3 = E * F
         let y3 = &gg * &hh; // Y3 = G * H
         let t3 = ee * hh; // T3 = E * H
