@@ -107,7 +107,7 @@ impl Decode for Curve {
     // based on https://tools.ietf.org/html/rfc8032#section-5.2.3
     fn decode(&self, buf: &[u8]) -> Result<Self::Deser, Error> {
         let modulus = self.get_field().get_modulus();
-        let size = (modulus.bits() + 1 + 7) / 8;
+        let size = (modulus.bits() as usize + 1 + 7) / 8;
         // step 1
         if buf.len() != size {
             return Err(Error::new(ErrorKind::Other, "Wrong input buffer size."));
@@ -199,7 +199,7 @@ mod tests {
             let modulus = ec.get_field().get_modulus();
             let gen = ec.get_generator();
             let ser = gen.encode(false); // compression does not exist
-            assert_eq!(ser.len(), (modulus.bits() + 1 + 7) / 8);
+            assert_eq!(ser.len(), (modulus.bits() as usize + 1 + 7) / 8);
             let deser = ec.decode(&ser).unwrap();
             assert!(
                 ec.is_on_curve(&deser),

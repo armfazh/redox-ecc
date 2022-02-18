@@ -9,7 +9,7 @@ macro_rules! do_if_eq {
         if $cond {
             $body
         } else {
-            panic!($error)
+            panic!("{}", $error)
         }
     };
 }

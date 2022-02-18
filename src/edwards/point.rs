@@ -44,7 +44,7 @@ impl Encode for Point {
         let x_0 = (((x.sgn0() >> 1) & 0x01) << 7) as u8;
         let mut enc = y.to_bytes_le();
         let p = self.e.f.get_modulus();
-        let size = (p.bits() + 1 + 7) / 8;
+        let size = (p.bits() as usize + 1 + 7) / 8;
         enc.resize(size, 0u8);
         let last = enc.len() - 1;
         enc[last] |= x_0;

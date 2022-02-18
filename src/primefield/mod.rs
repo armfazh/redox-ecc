@@ -68,7 +68,7 @@ impl Field for Fp {
         self.0.p.clone()
     }
     fn size_bytes(&self) -> usize {
-        (self.0.p.bits() + 7) / 8
+        (self.0.p.bits() as usize + 7) / 8
     }
 }
 

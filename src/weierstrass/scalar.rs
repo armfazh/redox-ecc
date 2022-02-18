@@ -32,7 +32,7 @@ impl EcScalar for Scalar {}
 impl Serialize for Scalar {
     /// serializes the field element into big-endian bytes
     fn to_bytes_be(&self) -> Vec<u8> {
-        let field_len = (self.r.bits() + 7) / 8;
+        let field_len = (self.r.bits() as usize + 7) / 8;
         let mut bytes = self.k.to_biguint().unwrap().to_bytes_be();
         let mut out = vec![0; field_len - bytes.len()];
         if !out.is_empty() {
@@ -137,14 +137,14 @@ impl std::iter::Iterator for Iterino {
 
 impl Scalar {
     pub fn iter_lr(&self) -> impl std::iter::Iterator<Item = bool> {
-        let l = self.k.bits();
+        let l = self.k.bits() as usize;
         let i = l - 1usize;
         let (_, v) = self.k.to_u32_digits();
         let is_lr = true;
         Iterino { l, i, v, is_lr }
     }
     pub fn iter_rl(&self) -> impl std::iter::Iterator<Item = bool> {
-        let l = self.k.bits();
+        let l = self.k.bits() as usize;
         let i = 0usize;
         let (_, v) = self.k.to_u32_digits();
         let is_lr = false;

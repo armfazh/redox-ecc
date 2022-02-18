@@ -19,9 +19,9 @@ impl std::fmt::Display for EdCurveID {
 }
 
 /// EDWARDS25519 is the edwards25519 elliptic curve as specified in RFC-7748.
-pub static EDWARDS25519: EdCurveID = EdCurveID(&EDWARDS25519_PARAMS);
+pub static EDWARDS25519: EdCurveID = EdCurveID(EDWARDS25519_PARAMS);
 /// EDWARDS448 is the edwards448 elliptic curve as specified in RFC-7748.
-pub static EDWARDS448: EdCurveID = EdCurveID(&EDWARDS448_PARAMS);
+pub static EDWARDS448: EdCurveID = EdCurveID(EDWARDS448_PARAMS);
 
 static EDWARDS25519_PARAMS: &Params = &Params {
     name: "edwards25519",
