@@ -31,11 +31,13 @@ pub struct Point {
 }
 
 impl ScMulRef<Scalar> for Point {}
+
 impl EcPoint<Scalar> for Point {
     fn is_zero(&self) -> bool {
         self.c.x.is_zero() && !self.c.y.is_zero() && self.c.z.is_zero()
     }
 }
+
 impl Encode for Point {
     fn encode(&self, compress: bool) -> Vec<u8> {
         // normalize the point to ensure that z = 1
@@ -87,52 +89,61 @@ impl Point {
     // Costello-Renes-Batina. [Alg.1] (eprint.iacr.org/2015/1060).
     fn core_add(&self, p: &<Curve as EllipticCurve>::Point) -> <Curve as EllipticCurve>::Point {
         let a = &self.e.a;
-        let b3 = &self.e.b + &self.e.b + &self.e.b;
+        let b3 = &self.e.b.add_nomod(&self.e.b).add_nomod(&self.e.b);
         let (x1, x2) = (&self.c.x, &p.c.x);
         let (y1, y2) = (&self.c.y, &p.c.y);
         let (z1, z2) = (&self.c.z, &p.c.z);
-        let (mut x3, mut y3, mut z3);
-        let (mut t0, mut t1, mut t2, mut t3, mut t4, mut t5);
-        t0 = x1 * x2; //    1. t0 = X1 * X2
-        t1 = y1 * y2; //    2. t1 = Y1 * Y2
-        t2 = z1 * z2; //    3. t2 = Z1 * Z2
-        t3 = x1 + y1; //    4. t3 = X1 + Y1
-        t4 = x2 + y2; //    5. t4 = X2 + Y2
-        t3 = &t3 * &t4; //  6. t3 = t3 * t4
-        t4 = &t0 + &t1; //  7. t4 = t0 + t1
-        t3 = &t3 - &t4; //  8. t3 = t3 - t4
-        t4 = x1 + z1; //    9. t4 = X1 + Z1
-        t5 = x2 + z2; //   10. t5 = X2 + Z2
-        t4 = &t4 * &t5; // 11. t4 = t4 * t5
-        t5 = &t0 + &t2; // 12. t5 = t0 + t2
-        t4 = &t4 - &t5; // 13. t4 = t4 - t5
-        t5 = y1 + z1; //   14. t5 = Y1 + Z1
-        x3 = y2 + z2; //   15. X3 = Y2 + Z2
-        t5 = &t5 * &x3; // 16. t5 = t5 * X3
-        x3 = &t1 + &t2; // 17. X3 = t1 + t2
-        t5 = &t5 - &x3; // 18. t5 = t5 - X3
-        z3 = a * &t4; //   19. Z3 =  a * t4
-        x3 = &b3 * &t2; // 20. X3 = b3 * t2
-        z3 = x3 + &z3; //  21. Z3 = X3 + Z3
-        x3 = &t1 - &z3; // 22. X3 = t1 - Z3
-        z3 = &t1 + &z3; // 23. Z3 = t1 + Z3
-        y3 = &x3 * &z3; // 24. Y3 = X3 * Z3
-        t1 = &t0 + &t0; // 25. t1 = t0 + t0
-        t1 = &t1 + &t0; // 26. t1 = t1 + t0
-        t2 = a * &t2; //   27. t2 =  a * t2
-        t4 = b3 * &t4; //  28. t4 = b3 * t4
-        t1 = &t1 + &t2; // 29. t1 = t1 + t2
-        t2 = &t0 - &t2; // 30. t2 = t0 - t2
-        t2 = a * &t2; //   31. t2 =  a * t2
-        t4 = &t4 + t2; //  32. t4 = t4 + t2
-        t0 = &t1 * &t4; // 33. t0 = t1 * t4
-        y3 = y3 + &t0; //  34. Y3 = Y3 + t0
-        t0 = &t5 * t4; //  35. t0 = t5 * t4
-        x3 = &t3 * &x3; // 36. X3 = t3 * X3
-        x3 = x3 - &t0; //  37. X3 = X3 - t0
-        t0 = t3 * t1; //   38. t0 = t3 * t1
-        z3 = t5 * z3; //   39. Z3 = t5 * Z3
-        z3 = z3 + t0; //   40. Z3 = Z3 + t0
+        let mut x3: FpElt;
+        let mut y3: FpElt;
+        let mut z3: FpElt;
+
+        let mut t0: FpElt;
+        let mut t1: FpElt;
+        let mut t2: FpElt;
+        let mut t3: FpElt;
+        let mut t4: FpElt;
+        let mut t5: FpElt;
+
+        t0 = x1 * x2; //                    1. t0 = X1 * X2
+        t1 = y1 * y2; //                    2. t1 = Y1 * Y2
+        t2 = z1 * z2; //                    3. t2 = Z1 * Z2
+        t3 = x1.add_nomod(y1); //     4. t3 = X1 + Y1
+        t4 = x2.add_nomod(y2); //     5. t4 = X2 + Y2
+        t3 = &t3 * &t4; //                  6. t3 = t3 * t4
+        t4 = t0.add_nomod(&t1); //    7. t4 = t0 + t1
+        t3.sub_nomod_inplace(&t4); // 8. t3 = t3 - t4
+        t4 = x1.add_nomod(z1); //     9. t4 = X1 + Z1
+        t5 = x2.add_nomod(z2); //    10. t5 = X2 + Z2
+        t4 = &t4 * &t5; //                 11. t4 = t4 * t5
+        t5 = t0.add_nomod(&t2); //    12. t5 = t0 + t2
+        t4.sub_nomod_inplace(&t5); // 13. t4 = t4 - t5
+        t5 = y1.add_nomod(z1); //     14. t5 = Y1 + Z1
+        x3 = y2.add_nomod(z2); //     15. X3 = Y2 + Z2
+        t5 = &t5 * &x3; //                  16. t5 = t5 * X3
+        x3 = t1.add_nomod(&t2); //    17. X3 = t1 + t2
+        t5.sub_nomod_inplace(&x3); // 18. t5 = t5 - X3
+        z3 = a * &t4; //                    19. Z3 =  a * t4
+        x3 = b3 * &t2; //                   20. X3 = b3 * t2
+        z3.add_nomod_inplace(&x3); // 21. Z3 = X3 + Z3
+        x3 = t1.sub_nomod(&z3); //    22. X3 = t1 - Z3
+        z3.add_nomod_inplace(&t1); // 23. Z3 = t1 + Z3
+        y3 = &x3 * &z3; //                  24. Y3 = X3 * Z3
+        t1 = t0.add_nomod(&t0); //    25. t1 = t0 + t0
+        t1.add_nomod_inplace(&t0); // 26. t1 = t1 + t0
+        t2 = a * &t2; //                    27. t2 =  a * t2
+        t4 = b3 * &t4; //                   28. t4 = b3 * t4
+        t1.add_nomod_inplace(&t2); // 29. t1 = t1 + t2
+        t2 = t0.sub_nomod(&t2); //    30. t2 = t0 - t2
+        t2 = a * &t2; //                    31. t2 =  a * t2
+        t4.add_nomod_inplace(&t2); // 32. t4 = t4 + t2
+        t0 = &t1 * &t4; //                  33. t0 = t1 * t4
+        y3.add_nomod_inplace(&t0); // 34. Y3 = Y3 + t0
+        t0 = &t5 * t4; //                   35. t0 = t5 * t4
+        x3 = &t3 * &x3; //                  36. X3 = t3 * X3
+        x3.sub_nomod_inplace(&t0); // 37. X3 = X3 - t0
+        t0 = t3 * t1; //                    38. t0 = t3 * t1
+        z3 = t5 * z3; //                    39. Z3 = t5 * Z3
+        z3.add_nomod_inplace(&t0); // 40. Z3 = Z3 + t0
         self.e.new_proy_point(ProyCoordinates {
             x: x3,
             y: y3,
@@ -144,43 +155,49 @@ impl Point {
     // Costello-Renes-Batina. [Alg.3] (eprint.iacr.org/2015/1060).
     fn core_doubling(&self) -> <Curve as EllipticCurve>::Point {
         let a = &self.e.a;
-        let b3 = &self.e.b + &self.e.b + &self.e.b;
+        let b3 = &self.e.b.add_nomod(&self.e.b).add_nomod(&self.e.b);
         let x = &self.c.x;
         let y = &self.c.y;
         let z = &self.c.z;
-        let (mut x3, mut y3, mut z3);
-        let (mut t0, t1, mut t2, mut t3);
-        t0 = x * x; //      1. t0 =  X *  X
-        t1 = y * y; //      2. t1 =  Y *  Y
-        t2 = z * z; //      3. t2 =  Z *  Z
-        t3 = x * y; //      4. t3 =  X *  Y
-        t3 = &t3 + &t3; //  5. t3 = t3 + t3
-        z3 = x * z; //      6. Z3 =  X *  Z
-        z3 = &z3 + &z3; //  7. Z3 = Z3 + Z3
-        x3 = a * &z3; //    8. X3 =  a * Z3
-        y3 = &b3 * &t2; //  9. Y3 = b3 * t2
-        y3 = &x3 + &y3; // 10. Y3 = X3 + Y3
-        x3 = &t1 - &y3; // 11. X3 = t1 - Y3
-        y3 = &t1 + &y3; // 12. Y3 = t1 + Y3
-        y3 = &x3 * &y3; // 13. Y3 = X3 * Y3
-        x3 = &t3 * &x3; // 14. X3 = t3 * X3
-        z3 = &b3 * &z3; // 15. Z3 = b3 * Z3
-        t2 = a * &t2; //   16. t2 =  a * t2
-        t3 = &t0 - &t2; // 17. t3 = t0 - t2
-        t3 = a * &t3; //   18. t3 =  a * t3
-        t3 = &t3 + &z3; // 19. t3 = t3 + Z3
-        z3 = &t0 + &t0; // 20. Z3 = t0 + t0
-        t0 = &z3 + &t0; // 21. t0 = Z3 + t0
-        t0 = &t0 + &t2; // 22. t0 = t0 + t2
-        t0 = &t0 * &t3; // 23. t0 = t0 * t3
-        y3 = &y3 + &t0; // 24. Y3 = Y3 + t0
-        t2 = y * z; //     25. t2 =  Y *  Z
-        t2 = &t2 + &t2; // 26. t2 = t2 + t2
-        t0 = &t2 * &t3; // 27. t2 = t2 * t3
-        x3 = &x3 - &t0; // 28. X3 = X3 - t0
-        z3 = &t2 * &t1; // 29. Z3 = t2 * t1
-        z3 = &z3 + &z3; // 30. Z3 = Z3 + Z3
-        z3 = &z3 + &z3; // 31. Z3 = Z3 + Z3
+        let mut x3: FpElt;
+        let mut y3: FpElt;
+        let mut z3: FpElt;
+
+        let mut t0: FpElt;
+        let mut t1: FpElt;
+        let mut t2: FpElt;
+        let mut t3: FpElt;
+        t0 = x * x; //                       1. t0 =  X *  X
+        t1 = y * y; //                       2. t1 =  Y *  Y
+        t2 = z * z; //                       3. t2 =  Z *  Z
+        t3 = x * y; //                       4. t3 =  X *  Y
+        t3 = t3.add_nomod(&t3); //     5. t3 = t3 + t3
+        z3 = x * z; //                       6. Z3 =  X *  Z
+        z3 = z3.add_nomod(&z3); //     7. Z3 = Z3 + Z3
+        x3 = a * &z3; //                     8. X3 =  a * Z3
+        y3 = b3 * &t2; //                    9. Y3 = b3 * t2
+        y3.add_nomod_inplace(&x3); // 10. Y3 = X3 + Y3
+        x3 = t1.sub_nomod(&y3); //    11. X3 = t1 - Y3
+        y3.add_nomod_inplace(&t1); // 12. Y3 = t1 + Y3
+        y3 = &x3 * &y3; //                  13. Y3 = X3 * Y3
+        x3 = &t3 * &x3; //                  14. X3 = t3 * X3
+        z3 = b3 * &z3; //                   15. Z3 = b3 * Z3
+        t2 = a * &t2; //                    16. t2 =  a * t2
+        t3 = t0.sub_nomod(&t2); //    17. t3 = t0 - t2
+        t3 = a * &t3; //                    18. t3 =  a * t3
+        t3.add_nomod_inplace(&z3); // 19. t3 = t3 + Z3
+        z3 = t0.add_nomod(&t0); //    20. Z3 = t0 + t0
+        t0.add_nomod_inplace(&z3); // 21. t0 = Z3 + t0
+        t0.add_nomod_inplace(&t2); // 22. t0 = t0 + t2
+        t0 = &t0 * &t3; //                  23. t0 = t0 * t3
+        y3.add_nomod_inplace(&t0); // 24. Y3 = Y3 + t0
+        t2 = y * z; //                      25. t2 =  Y *  Z
+        t2 = t2.add_nomod(&t2); //    26. t2 = t2 + t2
+        t0 = &t2 * &t3; //                  27. t2 = t2 * t3
+        x3.sub_nomod_inplace(&t0); // 28. X3 = X3 - t0
+        z3 = &t2 * &t1; //                  29. Z3 = t2 * t1
+        z3 = z3.add_nomod(&z3); //    30. Z3 = Z3 + Z3
+        z3 = z3.add_nomod(&z3); //    31. Z3 = Z3 + Z3
         self.e.new_proy_point(ProyCoordinates {
             x: x3,
             y: y3,
