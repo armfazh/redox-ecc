@@ -2,14 +2,15 @@
 //!
 //! The ellipticcurve module is meant to be used for bar.
 
+use heapless::Vec;
 use num_bigint::{BigInt, BigUint};
 
 use std::fmt::Display;
 
 use crate::field::Field;
-use crate::ops::{AddRef, DivRef, MulRef, NegRef, ScMulRef, Serialize, SubRef};
+use crate::ops::{AddRef, DeserError, DivRef, MulRef, NegRef, ScMulRef, Serialize, SubRef};
 /// EcScalar models the behaviour of a scalar to multiply points.
-pub trait EcScalar: Display + AddRef + SubRef + MulRef + DivRef + NegRef + Serialize {}
+pub trait EcScalar: Display + AddRef + SubRef + MulRef + DivRef + NegRef {}
 
 /// EcPoint models the behaviour of a point on an elliptic curve.
 pub trait EcPoint<T>: Display + AddRef + SubRef + NegRef + ScMulRef<T> + Encode + Eq
@@ -22,14 +23,14 @@ where
 /// Encode provides functionality for encoding elliptic curve points as
 /// octet-strings
 pub trait Encode {
-    fn encode(&self, compress: bool) -> Vec<u8>;
+    fn encode<const C: usize>(&self, compress: bool) -> Vec<u8, C>;
 }
 
 /// Decode provides functionality for decoding octet-strings into
 /// elliptic curve points
 pub trait Decode {
     type Deser;
-    fn decode(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
+    fn decode(&self, _: &[u8]) -> Result<Self::Deser, DeserError>;
 }
 
 /// Curve trait allows to implement elliptic curve operations.

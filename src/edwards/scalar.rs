@@ -2,6 +2,7 @@
 //!
 //! The scalar module is meant to be used for bar.
 
+use heapless::Vec;
 use impl_ops::impl_op_ex;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
@@ -29,20 +30,20 @@ impl Scalar {
 }
 
 impl EcScalar for Scalar {}
-impl Serialize for Scalar {
+impl Serialize<10> for Scalar {
     /// serializes the field element into big-endian bytes
-    fn to_bytes_be(&self) -> Vec<u8> {
+    fn to_bytes_be(&self) -> Vec<u8, 10> {
         let field_len = (self.r.bits() as usize + 7) / 8;
         let mut bytes = self.k.to_biguint().unwrap().to_bytes_be();
-        let mut out = vec![0; field_len - bytes.len()];
+        let mut out = Vec::<_, 10>::new();
         if !out.is_empty() {
-            out.append(&mut bytes);
+            out.extend_from_slice(&mut bytes);
         } else {
-            out = bytes;
+            out.extend_from_slice(&bytes);
         }
         out
     }
-    fn to_bytes_le(&self) -> Vec<u8> {
+    fn to_bytes_le(&self) -> Vec<u8, 10> {
         let mut buf = self.to_bytes_be();
         buf.reverse();
         buf
@@ -118,7 +119,7 @@ impl Mul<Point> for Scalar {
 struct Iterino {
     l: usize,
     i: usize,
-    v: std::vec::Vec<u32>,
+    v: Vec<u32, 10>,
     is_lr: bool,
 }
 

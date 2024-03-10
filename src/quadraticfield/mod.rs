@@ -2,23 +2,24 @@
 //!
 //! The quadraticfield module is meant to be used for bar.
 
-use atomic_refcell::AtomicRefCell;
+use heapless::Vec;
 use num_bigint::{BigInt, BigUint};
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
 
-use std::ops;
-use std::ops::{BitXor, Div};
-use std::sync::Arc;
+use core::cell::RefCell;
+use core::ops;
+use core::ops::{BitXor, Div};
 
 use crate::do_if_eq;
 use crate::field::{CMov, Field, FieldElement, Sgn0, Sqrt};
-use crate::ops::{Deserialize, FromFactory, Serialize};
+use crate::ops::{DeserError, Deserialize, FromFactory, Serialize};
 use crate::primefield::{Fp, FpElt};
 
+#[derive(Clone)]
 struct Params {
     base: Fp,
-    sqrt_precmp: AtomicRefCell<Option<SqrtPrecmp>>,
+    sqrt_precmp: RefCell<Option<SqrtPrecmp>>,
 }
 
 impl Eq for Params {}
@@ -31,7 +32,7 @@ impl PartialEq for Params {
 
 /// Fp implements a base field of prime characteristic.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Fp2(Arc<Params>);
+pub struct Fp2(Params);
 
 impl Fp2 {
     /// Use `new` to generate a prime field instance.
@@ -43,8 +44,8 @@ impl Fp2 {
     /// The `modulus` should be a prime number.
     pub fn new(modulus: BigUint) -> Self {
         let base = Fp::new(modulus);
-        let sqrt_precmp = AtomicRefCell::new(None);
-        Fp2(Arc::new(Params { base, sqrt_precmp }))
+        let sqrt_precmp = RefCell::new(None);
+        Fp2(Params { base, sqrt_precmp })
     }
 }
 
@@ -54,7 +55,7 @@ impl Field for Fp2 {
         let n0 = self.0.base.elt(n);
         let n1 = self.0.base.zero();
         let f = self.clone();
-        Fp2Elt { n: vec![n0, n1], f }
+        Fp2Elt { n: (n0, n1), f }
     }
     fn zero(&self) -> Self::Elt {
         self.elt(BigInt::zero())
@@ -72,29 +73,29 @@ impl Field for Fp2 {
 
 impl Deserialize for Fp2 {
     type Deser = <Fp2 as Field>::Elt;
-    fn from_bytes_be(&self, bytes: &[u8]) -> Result<Self::Deser, std::io::Error> {
+    fn from_bytes_be(&self, bytes: &[u8]) -> Result<Self::Deser, DeserError> {
         let len = self.size_bytes();
         if len != bytes.len() {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "wrong size"));
+            return Err(DeserError::new("wrong size"));
         }
         let size = len / 2;
         let n0 = self.0.base.from_bytes_be(&bytes[0..size]).unwrap();
         let n1 = self.0.base.from_bytes_be(&bytes[size..2 * size]).unwrap();
         Ok(Fp2Elt {
-            n: vec![n0, n1],
+            n: (n0, n1),
             f: self.clone(),
         })
     }
-    fn from_bytes_le(&self, bytes: &[u8]) -> Result<Self::Deser, std::io::Error> {
+    fn from_bytes_le(&self, bytes: &[u8]) -> Result<Self::Deser, DeserError> {
         let len = self.size_bytes();
         if len != bytes.len() {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "wrong size"));
+            return Err(DeserError::new("wrong size"));
         }
         let size = len / 2;
         let n0 = self.0.base.from_bytes_le(&bytes[0..size]).unwrap();
         let n1 = self.0.base.from_bytes_le(&bytes[size..2 * size]).unwrap();
         Ok(Fp2Elt {
-            n: vec![n0, n1],
+            n: (n0, n1),
             f: self.clone(),
         })
     }
@@ -118,11 +119,11 @@ impl_from_factory!(Fp2, <u8 u16 u32 u64 i8 i16 i32 i64>);
 impl FromFactory<&str> for Fp2 {
     type Output = <Fp2 as Field>::Elt;
     fn from(&self, s: &str) -> Self::Output {
-        let vs: Vec<&str> = s.splitn(2, ',').collect();
+        let vs: Vec<&str, 2> = s.splitn(2, ',').collect();
         let n0: FpElt = self.0.base.from(vs[0]);
         let n1: FpElt = self.0.base.from(vs[1]);
         Fp2Elt {
-            n: vec![n0, n1],
+            n: (n0, n1),
             f: self.clone(),
         }
     }
@@ -131,27 +132,25 @@ impl FromFactory<&str> for Fp2 {
 /// Fp2Elt is an element of a prime field.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Fp2Elt {
-    n: Vec<FpElt>,
+    n: (FpElt, FpElt),
     f: Fp2,
 }
 
 impl FieldElement for Fp2Elt {}
 
-impl Serialize for Fp2Elt {
+impl Serialize<20> for Fp2Elt {
     /// serializes the field element into big-endian bytes
-    fn to_bytes_be(&self) -> Vec<u8> {
-        let mut out = Vec::new();
-        for x in self.n.iter() {
-            out.append(&mut x.to_bytes_be())
-        }
+    fn to_bytes_be(&self) -> Vec<u8, 20> {
+        let mut out = Vec::<u8, 20>::new();
+        out.extend_from_slice(&self.n.0.to_bytes_be());
+        out.extend_from_slice(&self.n.1.to_bytes_be());
         out
     }
     /// serializes the field element into little-endian bytes
-    fn to_bytes_le(&self) -> Vec<u8> {
-        let mut out = Vec::new();
-        for x in self.n.iter() {
-            out.append(&mut x.to_bytes_le())
-        }
+    fn to_bytes_le(&self) -> Vec<u8, 20> {
+        let mut out = Vec::<u8, 20>::new();
+        out.extend_from_slice(&self.n.0.to_bytes_le());
+        out.extend_from_slice(&self.n.1.to_bytes_le());
         out
     }
 }
@@ -161,7 +160,7 @@ impl<'a, 'b> std::ops::Add<&'b Fp2Elt> for &'a Fp2Elt {
     fn add(self, other: &'b Fp2Elt) -> Fp2Elt {
         do_if_eq!(
             self.f == other.f,
-            self.elt(&self.n[0] + &other.n[0], &self.n[1] + &other.n[1]),
+            self.elt(&self.n.0 + &other.n.0, &self.n.1 + &other.n.1),
             ERR_BIN_OP
         )
     }
@@ -171,7 +170,7 @@ impl<'a> std::ops::Add<Fp2Elt> for &'a Fp2Elt {
     fn add(self, other: Fp2Elt) -> Fp2Elt {
         do_if_eq!(
             self.f == other.f,
-            self.elt(&self.n[0] + &other.n[0], &self.n[1] + &other.n[1]),
+            self.elt(&self.n.0 + &other.n.0, &self.n.1 + &other.n.1),
             ERR_BIN_OP
         )
     }
@@ -180,26 +179,26 @@ impl<'a> std::ops::Add<Fp2Elt> for &'a Fp2Elt {
 impl Fp2Elt {
     #[inline]
     fn elt(&self, n0: FpElt, n1: FpElt) -> Fp2Elt {
-        let n = vec![n0, n1];
+        let n = (n0, n1);
         let f = self.f.clone();
         Fp2Elt { n, f }
     }
     #[inline]
     fn inv_mod(&self) -> Fp2Elt {
-        let n0 = &self.n[0];
-        let n1 = &self.n[1];
+        let n0 = &self.n.0;
+        let n1 = &self.n.1;
         let den = 1u32 / &(n0 * n0 + n1 * n1);
         self.elt(&den * n0, den * n1)
     }
 }
 
 impl_op_ex!(+|a: Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
-    do_if_eq!(a.f == b.f, a.elt(&a.n[0] + &b.n[0], &a.n[1] + &b.n[1]), ERR_BIN_OP)
+    do_if_eq!(a.f == b.f, a.elt(&a.n.0 + &b.n.0, &a.n.1 + &b.n.1), ERR_BIN_OP)
 });
 impl_op_ex!(-|a: &Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
     do_if_eq!(
         a.f == b.f,
-        a.elt(&a.n[0] - &b.n[0], &a.n[1] - &b.n[1]),
+        a.elt(&a.n.0 - &b.n.0, &a.n.1 - &b.n.1),
         ERR_BIN_OP
     )
 });
@@ -207,8 +206,8 @@ impl_op_ex!(*|a: &Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
     do_if_eq!(
         a.f == b.f,
         a.elt(
-            &a.n[0] * &b.n[0] - &a.n[1] * &b.n[1],
-            &a.n[0] * &b.n[1] + &a.n[1] * &b.n[0],
+            &a.n.0 * &b.n.0 - &a.n.1 * &b.n.1,
+            &a.n.0 * &b.n.1 + &a.n.1 * &b.n.0,
         ),
         ERR_BIN_OP
     )
@@ -219,7 +218,7 @@ impl_op_ex!(/|a: &Fp2Elt, b: &Fp2Elt| -> Fp2Elt {
         a * b.inv_mod()
     }
 });
-impl_op_ex!(-|a: &Fp2Elt| -> Fp2Elt { a.elt(-&a.n[0], -&a.n[1]) });
+impl_op_ex!(-|a: &Fp2Elt| -> Fp2Elt { a.elt(-&a.n.0, -&a.n.1) });
 impl_op_ex!(^|a: &Fp2Elt, b: u32| -> Fp2Elt {
     do_if_eq!(b == 2u32, a * a, ERR_EXP_SQR_OP)
 });
@@ -293,8 +292,8 @@ impl Fp2 {
 impl Sqrt for Fp2Elt {
     #[inline]
     fn is_square(&self) -> bool {
-        let n0 = &self.n[0];
-        let n1 = &self.n[1];
+        let n0 = &self.n.0;
+        let n1 = &self.n.1;
         let t0 = n0 * n0 + n1 * n1;
         let exp = (self.f.get_modulus() - 1u32) >> 1usize;
         let t1 = &t0 ^ &exp;
@@ -324,9 +323,9 @@ impl Sqrt for Fp2Elt {
 
 impl Sgn0 for Fp2Elt {
     fn sgn0(&self) -> i32 {
-        let s0 = self.n[0].sgn0();
-        let z0 = self.n[0].is_zero() as i32;
-        let s1 = self.n[1].sgn0();
+        let s0 = self.n.0.sgn0();
+        let z0 = self.n.0.is_zero() as i32;
+        let s1 = self.n.1.sgn0();
         s0 | (z0 ^ s1)
     }
 }
@@ -336,11 +335,11 @@ impl num_traits::identities::Zero for Fp2Elt {
         unimplemented!()
     }
     fn is_zero(&self) -> bool {
-        self.n[0].is_zero() && self.n[1].is_zero()
+        self.n.0.is_zero() && self.n.1.is_zero()
     }
     fn set_zero(&mut self) {
-        self.n[0].set_zero();
-        self.n[1].set_zero()
+        self.n.0.set_zero();
+        self.n.1.set_zero()
     }
 }
 
@@ -349,17 +348,17 @@ impl num_traits::identities::One for Fp2Elt {
         unimplemented!()
     }
     fn is_one(&self) -> bool {
-        self.n[0].is_one() && self.n[1].is_zero()
+        self.n.0.is_one() && self.n.1.is_zero()
     }
     fn set_one(&mut self) {
-        self.n[0].set_one();
-        self.n[1].set_zero();
+        self.n.0.set_one();
+        self.n.1.set_zero();
     }
 }
 
 impl std::fmt::Display for Fp2Elt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}+i*{}", self.n[0], self.n[1])
+        write!(f, "{}+i*{}", self.n.0, self.n.1)
     }
 }
 

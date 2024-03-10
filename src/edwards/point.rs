@@ -1,3 +1,4 @@
+use heapless::Vec;
 use impl_ops::impl_op_ex;
 use num_bigint::ToBigInt;
 use num_traits::identities::{One, Zero};
@@ -34,7 +35,7 @@ impl EcPoint<Scalar> for Point {
 }
 impl Encode for Point {
     // based on https://tools.ietf.org/html/rfc8032#section-5.2.2
-    fn encode(&self, _: bool) -> Vec<u8> {
+    fn encode(&self, _: bool) -> Vec<u8, 20> {
         let mut p_normal = self.clone();
         p_normal.normalize();
         let coords = p_normal.c;

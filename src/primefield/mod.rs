@@ -2,24 +2,25 @@
 //!
 //! The primefield module is meant to be used for bar.
 
-use atomic_refcell::AtomicRefCell;
+use heapless::Vec;
 use impl_ops::impl_op_ex;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use num_traits::identities::{One, Zero};
 
-use std::ops;
-use std::ops::{BitXor, Div};
-use std::sync::Arc;
+use core::cell::RefCell;
+use core::ops;
+use core::ops::{BitXor, Div};
 
 use crate::do_if_eq;
 use crate::field::{CMov, Field, FieldElement, Sgn0, Sqrt};
-use crate::ops::{Deserialize, FromFactory, Serialize};
+use crate::ops::{DeserError, Deserialize, FromFactory, Serialize};
 
+#[derive(Clone)]
 struct Params {
     p: BigInt,
-    sqrt_precmp: AtomicRefCell<Option<SqrtPrecmp>>,
+    sqrt_precmp: RefCell<Option<SqrtPrecmp>>,
 }
 
 impl Eq for Params {}
@@ -32,7 +33,7 @@ impl PartialEq for Params {
 
 /// Fp implements a base field of prime characteristic.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Fp(Arc<Params>);
+pub struct Fp(Params);
 
 impl Fp {
     /// Use `new` to generate a prime field instance.
@@ -44,10 +45,10 @@ impl Fp {
     /// The `modulus` should be a prime number.
     pub fn new(modulus: BigUint) -> Self {
         // TODO: verify whether p is prime.
-        Fp(Arc::new(Params {
+        Fp(Params {
             p: modulus.to_bigint().unwrap(),
-            sqrt_precmp: AtomicRefCell::new(None),
-        }))
+            sqrt_precmp: RefCell::new(None),
+        })
     }
 }
 
@@ -74,11 +75,11 @@ impl Field for Fp {
 
 impl Deserialize for Fp {
     type Deser = <Fp as Field>::Elt;
-    fn from_bytes_be(&self, bytes: &[u8]) -> Result<Self::Deser, std::io::Error> {
+    fn from_bytes_be(&self, bytes: &[u8]) -> Result<Self::Deser, DeserError> {
         let n = BigUint::from_bytes_be(bytes);
         Ok(self.elt(n.to_bigint().unwrap()))
     }
-    fn from_bytes_le(&self, bytes: &[u8]) -> Result<Self::Deser, std::io::Error> {
+    fn from_bytes_le(&self, bytes: &[u8]) -> Result<Self::Deser, DeserError> {
         let n = BigUint::from_bytes_le(bytes);
         Ok(self.elt(n.to_bigint().unwrap()))
     }
@@ -144,21 +145,22 @@ pub struct FpElt {
 
 impl FieldElement for FpElt {}
 
-impl Serialize for FpElt {
+impl Serialize<10> for FpElt {
     /// serializes the field element into big-endian bytes
-    fn to_bytes_be(&self) -> Vec<u8> {
+    fn to_bytes_be(&self) -> Vec<u8, 10> {
         let field_len = self.f.size_bytes();
         let mut bytes = self.n.to_biguint().unwrap().to_bytes_be();
-        let mut out = vec![0; field_len - bytes.len()];
+        // let mut out = vec![0; field_len - bytes.len()];
+        let mut out = Vec::<_, 10>::new();
         if !out.is_empty() {
-            out.append(&mut bytes);
+            out.extend_from_slice(&mut bytes);
         } else {
-            out = bytes;
+            out.extend_from_slice(&mut bytes);
         }
         out
     }
     /// serializes the field element into little-endian bytes
-    fn to_bytes_le(&self) -> Vec<u8> {
+    fn to_bytes_le(&self) -> Vec<u8, 10> {
         let mut bytes = self.to_bytes_be();
         bytes.reverse();
         bytes
@@ -245,10 +247,15 @@ impl<'a, 'b> BitXor<&'b BigInt> for &'a FpElt {
 
 impl CMov for FpElt {}
 
-#[derive(Clone, std::cmp::PartialEq)]
+#[derive(Clone, PartialEq)]
 enum SqrtPrecmp {
-    P3MOD4 { exp: BigInt },
-    P5MOD8 { exp: BigInt, sqrt_minus_one: FpElt },
+    P3MOD4 {
+        exp: BigInt,
+    },
+    P5MOD8 {
+        exp: BigInt,
+        sqrt_minus_one: Vec<u8, 10>,
+    },
     P9MOD16,
     P1MOD16,
 }
@@ -277,7 +284,7 @@ impl Fp {
             let sqrt_minus_one = t0;
             SqrtPrecmp::P5MOD8 {
                 exp,
-                sqrt_minus_one,
+                sqrt_minus_one: sqrt_minus_one.to_bytes_le(),
             }
         } else if 9u32 == (res % 16u32) {
             SqrtPrecmp::P9MOD16
@@ -305,6 +312,7 @@ impl Sqrt for FpElt {
                 let t0 = self ^ &exp;
                 let t1 = &t0 ^ 2u32;
                 let e = *self == t1;
+                let sqrt_minus_one = self.f.from_bytes_le(&sqrt_minus_one).unwrap();
                 let t1 = &t0 * sqrt_minus_one;
                 FpElt::cmov(&t1, &t0, e)
             }

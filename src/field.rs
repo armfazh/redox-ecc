@@ -33,7 +33,7 @@ pub trait CMov: Clone {
 }
 
 pub trait FieldElement:
-    Display + Eq + Zero + One + AddRef + SubRef + MulRef + DivRef + BitXor<u32> + Serialize + Clone
+    Display + Eq + Zero + One + AddRef + SubRef + MulRef + DivRef + BitXor<u32> + Clone
 {
 }
 

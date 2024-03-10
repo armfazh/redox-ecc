@@ -1,3 +1,5 @@
+use heapless::Vec;
+
 #[doc(hidden)]
 macro_rules! make_trait {
     (binary, $trait:ident, $name:ident) => {
@@ -67,16 +69,31 @@ make_trait!(unary, Neg, NegRef);
 make_trait!(action, Mul, ScMulRef);
 
 /// The Serialize trait performs type serialization into bytes
-pub trait Serialize {
-    fn to_bytes_be(&self) -> Vec<u8>;
-    fn to_bytes_le(&self) -> Vec<u8>;
+pub trait Serialize<const N: usize> {
+    fn to_bytes_be(&self) -> Vec<u8, N>;
+    fn to_bytes_le(&self) -> Vec<u8, N>;
+}
+
+#[derive(Debug)]
+pub struct DeserError<'a>(&'a str);
+
+impl<'a> DeserError<'a> {
+    pub fn new(msg: &'a str) -> Self {
+        DeserError(&msg)
+    }
+}
+
+impl<'a> core::fmt::Display for DeserError<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "SuperError is here!")
+    }
 }
 
 /// The Deserialize trait recovers native types from arrays of bytes
 pub trait Deserialize {
     type Deser;
-    fn from_bytes_be(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
-    fn from_bytes_le(&self, _: &[u8]) -> Result<Self::Deser, std::io::Error>;
+    fn from_bytes_be(&self, _: &[u8]) -> Result<Self::Deser, DeserError>;
+    fn from_bytes_le(&self, _: &[u8]) -> Result<Self::Deser, DeserError>;
 }
 
 pub trait IntoFactory<T, Out>: Sized {

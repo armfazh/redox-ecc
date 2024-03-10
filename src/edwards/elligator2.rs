@@ -1,3 +1,5 @@
+use heapless::pool::Box;
+
 use crate::edwards::Curve as TeCurve;
 use crate::ellipticcurve::{EllipticCurve, MapToCurve, RationalMap};
 use crate::field::Field;

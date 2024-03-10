@@ -25,6 +25,22 @@
 //! ```
 //!
 
+// Declaring our library as `no-std` unconditionally lets us be consistent
+// in how we `use` items from `std` or `core`
+#![no_std]
+
+// We always pull in `std` during tests, because it's just easier
+// to write tests when you can assume you're on a capable platform
+#[cfg(any(feature = "std", test))]
+#[macro_use]
+extern crate std;
+
+// When we're building for a no-std target, we pull in `core`, but alias
+// it as `std` so the `use` statements are the same between `std` and `core`.
+#[cfg(all(not(feature = "std"), not(test)))]
+#[macro_use]
+extern crate core as std;
+
 // #![warn(missing_docs)]
 
 #[macro_use]
@@ -43,10 +59,10 @@ pub mod quadraticfield;
 pub mod ellipticcurve;
 
 pub mod edwards;
-pub mod montgomery;
-pub mod weierstrass;
+// pub mod montgomery;
+// pub mod weierstrass;
 
-pub mod instances;
+// pub mod instances;
 
 #[cfg(test)]
 mod tests;

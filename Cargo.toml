@@ -19,11 +19,12 @@ harness = false
 
 [dependencies]
 impl_ops = "0.1.1"
-num-bigint = "0.4.3"
+num-bigint = { default-features = false, version = "0.4.3"}
 num-integer = "0.1.44"
 num-traits = "0.2.14"
 doc-comment = "0.3.3"
 atomic_refcell = "0.1.8"
+heapless = "0.7.16"
 
 [dev-dependencies]
 criterion = "0.3.5"
